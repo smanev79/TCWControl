@@ -20,6 +20,7 @@ import com.tcwcontrol.app.ui.alarms.AlarmLogScreen
 import com.tcwcontrol.app.ui.detail.DeviceDetailScreen
 import com.tcwcontrol.app.ui.devices.DeviceListScreen
 import com.tcwcontrol.app.ui.edit.EditDeviceScreen
+import com.tcwcontrol.app.ui.settings.SettingsScreen
 import com.tcwcontrol.app.ui.theme.TcwTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ object Routes {
     const val DETAIL = "device/{id}"
     const val EDIT = "edit?id={id}"
     const val ALARMS = "alarms"
+    const val SETTINGS = "settings"
 
     fun detail(id: String) = "device/$id"
     fun edit(id: String? = null) = if (id == null) "edit" else "edit?id=$id"
@@ -55,7 +57,11 @@ class MainActivity : ComponentActivity() {
                             onEdit = { nav.navigate(Routes.edit(it)) },
                             onAdd = { nav.navigate(Routes.edit()) },
                             onAlarmLog = { nav.navigate(Routes.ALARMS) },
+                            onSettings = { nav.navigate(Routes.SETTINGS) },
                         )
+                    }
+                    composable(Routes.SETTINGS) {
+                        SettingsScreen(onBack = { nav.popBackStack() })
                     }
                     composable(Routes.ALARMS) {
                         AlarmLogScreen(onBack = { nav.popBackStack() })

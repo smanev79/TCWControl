@@ -23,8 +23,10 @@ import java.util.UUID
 
 private val Context.dataStore by preferencesDataStore(name = "tcw_control")
 
-class DeviceRepository(context: Context, private val client: TeracomClient = TeracomClient()) {
+class DeviceRepository(context: Context) {
     private val store = context.applicationContext.dataStore
+    val traffic = TrafficCounter(context.applicationContext)
+    private val client = TeracomClient(onTraffic = traffic::record)
     val alarmLog = AlarmLog(context.applicationContext)
     private val notifier = AlarmNotifier(context.applicationContext)
     private val json = Json { ignoreUnknownKeys = true }
@@ -48,6 +50,19 @@ class DeviceRepository(context: Context, private val client: TeracomClient = Ter
 
     suspend fun setAlarmCheckSeconds(seconds: Int) {
         store.edit { it[ALARM_CHECK_SECONDS] = seconds }
+    }
+
+    val alarmLogEnabled: Flow<Boolean> = store.data.map { it[ALARM_LOG] ?: true }
+
+    suspend fun setAlarmLogEnabled(enabled: Boolean) {
+        store.edit { it[ALARM_LOG] = enabled }
+    }
+
+    /** Ask before a relay is switched or pulsed. */
+    val confirmRelays: Flow<Boolean> = store.data.map { it[CONFIRM_RELAYS] ?: false }
+
+    suspend fun setConfirmRelays(enabled: Boolean) {
+        store.edit { it[CONFIRM_RELAYS] = enabled }
     }
 
     fun device(id: String): Flow<DeviceConfig?> = devices.map { list -> list.firstOrNull { it.id == id } }
@@ -81,7 +96,7 @@ class DeviceRepository(context: Context, private val client: TeracomClient = Ter
         val status = withContext(Dispatchers.IO) { client.fetchStatus(device.endpoint()) }
         rememberModel(device.id, status.model)
         val name = displayName(device, status.model)
-        val started = alarmLog.observe(device, name, status)
+        val started = alarmLog.observe(device, name, status, record = alarmLogEnabled.first())
         if (started.isNotEmpty() && monitoringEnabled.first()) notifier.showAlarms(name, device.id, started)
         return status
     }
@@ -167,5 +182,7 @@ class DeviceRepository(context: Context, private val client: TeracomClient = Ter
         private val REFRESH_SECONDS = intPreferencesKey("refresh_seconds")
         private val MONITORING = booleanPreferencesKey("monitoring_enabled")
         private val ALARM_CHECK_SECONDS = intPreferencesKey("alarm_check_seconds")
+        private val ALARM_LOG = booleanPreferencesKey("alarm_log_enabled")
+        private val CONFIRM_RELAYS = booleanPreferencesKey("confirm_relays")
     }
 }

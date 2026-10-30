@@ -51,8 +51,16 @@ class AlarmLog(context: Context) {
         mutex.withLock { loaded() }
     }
 
-    /** Records alarms that started or cleared since the last read of [device] and returns the started ones. */
-    suspend fun observe(device: DeviceConfig, deviceName: String, status: DeviceStatus): List<ActiveAlarm> =
+    /**
+     * Records alarms that started or cleared since the last read of [device] and returns the started ones.
+     * With [record] off only the active alarms are tracked, so notifications still work without a log.
+     */
+    suspend fun observe(
+        device: DeviceConfig,
+        deviceName: String,
+        status: DeviceStatus,
+        record: Boolean = true,
+    ): List<ActiveAlarm> =
         mutex.withLock {
             val current = loaded()
             val now = System.currentTimeMillis()
@@ -63,8 +71,12 @@ class AlarmLog(context: Context) {
             val cleared = before.filterKeys { it !in after }
             if (started.isEmpty() && cleared.isEmpty()) return@withLock emptyList()
 
-            val newEvents = started.map { AlarmEvent(now, device.id, deviceName, it.text, started = true) } +
-                cleared.values.map { AlarmEvent(now, device.id, deviceName, it, started = false) }
+            val newEvents = if (record) {
+                started.map { AlarmEvent(now, device.id, deviceName, it.text, started = true) } +
+                    cleared.values.map { AlarmEvent(now, device.id, deviceName, it, started = false) }
+            } else {
+                emptyList()
+            }
             save(
                 current.copy(
                     events = (newEvents + current.events).take(MAX_EVENTS),

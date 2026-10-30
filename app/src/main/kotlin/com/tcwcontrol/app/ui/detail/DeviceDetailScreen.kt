@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,7 +37,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -73,6 +76,11 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
+    val confirmRelays by vm.confirmRelays.collectAsStateWithLifecycle()
+    var pendingRelay by remember { mutableStateOf<Pair<Int, RelayAction>?>(null) }
+    fun onRelay(index: Int, action: RelayAction) {
+        if (confirmRelays) pendingRelay = index to action else vm.relay(index, action)
+    }
 
     WhileVisible { vm.pollForever() }
     LaunchedEffect(vm) {
@@ -106,12 +114,38 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
                 )
             }
             when {
-                status != null -> StatusList(status, state.busyRelay, vm::relay)
+                status != null -> StatusList(status, state.busyRelay, ::onRelay)
                 state.error == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
         }
+    }
+
+    pendingRelay?.let { (index, action) ->
+        val name = state.status?.relays?.firstOrNull { it.index == index }?.name.orEmpty().ifEmpty { "Relay $index" }
+        AlertDialog(
+            onDismissRequest = { pendingRelay = null },
+            title = {
+                Text(
+                    stringResource(
+                        when (action) {
+                            RelayAction.ON -> R.string.confirm_relay_on
+                            RelayAction.OFF -> R.string.confirm_relay_off
+                            RelayAction.PULSE -> R.string.confirm_relay_pulse
+                        },
+                        name,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingRelay = null
+                    vm.relay(index, action)
+                }) { Text(stringResource(R.string.confirm)) }
+            },
+            dismissButton = { TextButton(onClick = { pendingRelay = null }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 }
 

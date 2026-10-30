@@ -11,6 +11,8 @@ digital inputs and relays, with alarm values in red.
 - Alarm notifications from a background monitor, with a selectable check interval
 - Alarm log of when each alarm started and cleared
 - Export and import of the device list as a file or a QR code
+- Settings page to turn features on and off (alarm notifications, alarm log, relay confirmation, intervals)
+- Network traffic statistics per device
 
 ## Modules
 

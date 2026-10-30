@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 sealed interface Connection {
@@ -46,19 +45,6 @@ class DeviceListViewModel(private val repository: DeviceRepository) : ViewModel(
     val rows: StateFlow<List<DeviceRow>> = combine(repository.devices, connections) { devices, conn ->
         devices.map { DeviceRow(it, conn[it.id] ?: Connection.Unknown) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    val refreshSeconds: StateFlow<Int> = repository.refreshSeconds
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeviceRepository.DEFAULT_REFRESH_SECONDS)
-
-    val monitoringEnabled: StateFlow<Boolean> = repository.monitoringEnabled
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
-    val alarmCheckSeconds: StateFlow<Int> = repository.alarmCheckSeconds
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeviceRepository.DEFAULT_ALARM_CHECK_SECONDS)
-
-    fun setAlarmCheckSeconds(seconds: Int) {
-        viewModelScope.launch { repository.setAlarmCheckSeconds(seconds) }
-    }
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query
@@ -91,9 +77,6 @@ class DeviceListViewModel(private val repository: DeviceRepository) : ViewModel(
         return repository.importDevices(text)
     }
 
-    /** Saved before the service starts, because the service stops itself when the setting is off. */
-    suspend fun setMonitoringEnabled(enabled: Boolean) = repository.setMonitoringEnabled(enabled)
-
     /** Polls every device until the caller's scope is cancelled (the screen leaves the foreground). */
     suspend fun pollForever() {
         while (true) {
@@ -110,9 +93,5 @@ class DeviceListViewModel(private val repository: DeviceRepository) : ViewModel(
                 connections.update { it + (device.id to result) }
             }
         }.awaitAll()
-    }
-
-    fun setRefreshSeconds(seconds: Int) {
-        viewModelScope.launch { repository.setRefreshSeconds(seconds) }
     }
 }
