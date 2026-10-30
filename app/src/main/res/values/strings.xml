@@ -30,6 +30,13 @@
     <string name="alarm_notifications">Alarm notifications</string>
     <string name="alarm_notifications_on">Alarm notifications on</string>
     <string name="alarm_notifications_off">Alarm notifications off</string>
+    <string name="alarm_check_interval">Check devices for alarms every</string>
+    <string name="alarm_check_hint">Checks run even when the app is closed. Shorter intervals use more battery.</string>
+    <string name="minutes">%1$d min</string>
+    <string name="done">Done</string>
+    <string name="summary_online">%1$d online</string>
+    <string name="summary_offline">%1$d offline</string>
+    <string name="summary_alarm">%1$d in alarm</string>
     <string name="channel_alarms">Alarms</string>
     <string name="channel_monitor">Background monitoring</string>
     <string name="monitor_running">Watching %1$d devices for alarms</string>

@@ -83,8 +83,7 @@ class MonitorService : Service() {
                     if (started.isNotEmpty()) notifier.showAlarms(device, status.model, started)
                 }
             }.awaitAll()
-            val seconds = maxOf(repository.refreshSeconds.first(), MIN_INTERVAL_SECONDS)
-            delay(seconds * 1000L)
+            delay(repository.alarmCheckSeconds.first() * 1000L)
         }
     }
 
@@ -94,8 +93,6 @@ class MonitorService : Service() {
     }
 
     companion object {
-        private const val MIN_INTERVAL_SECONDS = 30
-
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, MonitorService::class.java))
         }

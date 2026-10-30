@@ -39,6 +39,13 @@ class DeviceListViewModel(private val repository: DeviceRepository) : ViewModel(
     val monitoringEnabled: StateFlow<Boolean> = repository.monitoringEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    val alarmCheckSeconds: StateFlow<Int> = repository.alarmCheckSeconds
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeviceRepository.DEFAULT_ALARM_CHECK_SECONDS)
+
+    fun setAlarmCheckSeconds(seconds: Int) {
+        viewModelScope.launch { repository.setAlarmCheckSeconds(seconds) }
+    }
+
     /** Saved before the service starts, because the service stops itself when the setting is off. */
     suspend fun setMonitoringEnabled(enabled: Boolean) = repository.setMonitoringEnabled(enabled)
 

@@ -39,6 +39,12 @@ class DeviceRepository(context: Context, private val client: TeracomClient = Ter
         store.edit { it[MONITORING] = enabled }
     }
 
+    val alarmCheckSeconds: Flow<Int> = store.data.map { it[ALARM_CHECK_SECONDS] ?: DEFAULT_ALARM_CHECK_SECONDS }
+
+    suspend fun setAlarmCheckSeconds(seconds: Int) {
+        store.edit { it[ALARM_CHECK_SECONDS] = seconds }
+    }
+
     fun device(id: String): Flow<DeviceConfig?> = devices.map { list -> list.firstOrNull { it.id == id } }
 
     suspend fun setRefreshSeconds(seconds: Int) {
@@ -87,8 +93,11 @@ class DeviceRepository(context: Context, private val client: TeracomClient = Ter
     companion object {
         const val DEFAULT_REFRESH_SECONDS = 5
         val REFRESH_OPTIONS = listOf(2, 5, 10, 30, 60)
+        const val DEFAULT_ALARM_CHECK_SECONDS = 60
+        val ALARM_CHECK_OPTIONS = listOf(30, 60, 120, 300, 600, 900, 1800)
         private val DEVICES = stringPreferencesKey("devices")
         private val REFRESH_SECONDS = intPreferencesKey("refresh_seconds")
         private val MONITORING = booleanPreferencesKey("monitoring_enabled")
+        private val ALARM_CHECK_SECONDS = intPreferencesKey("alarm_check_seconds")
     }
 }
