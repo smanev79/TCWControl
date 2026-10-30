@@ -9,6 +9,8 @@ data class DeviceConfig(
     val host: String,
     val port: Int = 80,
     val description: String = "",
+    /** Site or room the device belongs to; empty when ungrouped. */
+    val group: String = "",
     val username: String = "",
     val encryptedPassword: String = "",
     val isDemo: Boolean = false,

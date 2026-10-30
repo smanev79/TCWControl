@@ -14,7 +14,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.tcwcontrol.app.MainActivity
 import com.tcwcontrol.app.R
-import com.tcwcontrol.app.data.DeviceConfig
 import com.tcwcontrol.app.ui.theme.AlarmRed
 import com.tcwcontrol.core.model.ActiveAlarm
 
@@ -41,10 +40,9 @@ class AlarmNotifier(private val context: Context) {
             .setOngoing(true)
             .build()
 
-    /** Shows (or replaces) the alarm notification of [device] listing the alarms that just started. */
-    fun showAlarms(device: DeviceConfig, model: String, alarms: List<ActiveAlarm>) {
+    /** Shows (or replaces) the alarm notification of a device listing the alarms that just started. */
+    fun showAlarms(name: String, deviceId: String, alarms: List<ActiveAlarm>) {
         if (!canNotify()) return
-        val name = device.description.ifEmpty { model.ifEmpty { device.host } }
         val lines = alarms.take(MAX_LINES).map { it.text }
         val style = NotificationCompat.InboxStyle().also { s -> lines.forEach { s.addLine(it) } }
         if (alarms.size > MAX_LINES) style.setSummaryText(context.getString(R.string.alarm_more, alarms.size - MAX_LINES))
@@ -56,11 +54,11 @@ class AlarmNotifier(private val context: Context) {
             .setStyle(style)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setContentIntent(openApp(device.id))
+            .setContentIntent(openApp(deviceId))
             .setAutoCancel(true)
             .build()
         @Suppress("MissingPermission") // checked in canNotify()
-        manager.notify(device.id.hashCode(), notification)
+        manager.notify(deviceId.hashCode(), notification)
     }
 
     private fun canNotify(): Boolean =

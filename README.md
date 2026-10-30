@@ -4,6 +4,14 @@ Android app that monitors and controls Teracom TCW devices over HTTP. It polls e
 `status.xml` (with optional basic authentication) and shows sensors, analog/virtual inputs,
 digital inputs and relays, with alarm values in red.
 
+## Features
+
+- Device list with online/offline/alarm status, groups and search
+- Device screen with sensors, inputs, channels and relay control
+- Alarm notifications from a background monitor, with a selectable check interval
+- Alarm log of when each alarm started and cleared
+- Export and import of the device list as a file or a QR code
+
 ## Modules
 
 - `core` — plain Kotlin/JVM. The common `DeviceStatus` model, the `status.xml` parsers and the
@@ -15,6 +23,7 @@ digital inputs and relays, with alarm values in red.
 | Layout | Detected by | Models tested | Relay command |
 |---|---|---|---|
 | Modern (fw 2.x) | `<DeviceInfo>` | TCW241, TCW220, TCW210TH | `status.xml?ron=n` / `rof=n` / `rpl=n`, n = 1,2,4,8 |
+| Channels (fw 3.x) | `<DeviceInfo>` + `<CH>` | TCW242, TCW260 | assumed same as modern (unverified) |
 | Classic CM | `<Device>` | TCW181B-CM, TCW122B-CM | `status.xml?rN=1` / `rN=0` / `plN=1` |
 
 Sample files for every model are in `core/src/test/resources`. To support a new model, add its

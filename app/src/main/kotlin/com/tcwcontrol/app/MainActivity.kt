@@ -16,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tcwcontrol.app.monitor.AlarmNotifier
 import com.tcwcontrol.app.monitor.MonitorService
+import com.tcwcontrol.app.ui.alarms.AlarmLogScreen
 import com.tcwcontrol.app.ui.detail.DeviceDetailScreen
 import com.tcwcontrol.app.ui.devices.DeviceListScreen
 import com.tcwcontrol.app.ui.edit.EditDeviceScreen
@@ -27,6 +28,7 @@ object Routes {
     const val DEVICES = "devices"
     const val DETAIL = "device/{id}"
     const val EDIT = "edit?id={id}"
+    const val ALARMS = "alarms"
 
     fun detail(id: String) = "device/$id"
     fun edit(id: String? = null) = if (id == null) "edit" else "edit?id=$id"
@@ -52,7 +54,11 @@ class MainActivity : ComponentActivity() {
                             onOpen = { nav.navigate(Routes.detail(it)) },
                             onEdit = { nav.navigate(Routes.edit(it)) },
                             onAdd = { nav.navigate(Routes.edit()) },
+                            onAlarmLog = { nav.navigate(Routes.ALARMS) },
                         )
+                    }
+                    composable(Routes.ALARMS) {
+                        AlarmLogScreen(onBack = { nav.popBackStack() })
                     }
                     composable(Routes.DETAIL, arguments = listOf(navArgument("id") { type = NavType.StringType })) {
                         DeviceDetailScreen(

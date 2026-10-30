@@ -9,7 +9,11 @@ import androidx.lifecycle.viewModelScope
 import com.tcwcontrol.app.data.DemoUnit
 import com.tcwcontrol.app.data.DeviceConfig
 import com.tcwcontrol.app.data.DeviceRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class EditForm(
@@ -17,6 +21,7 @@ data class EditForm(
     val host: String = "",
     val port: String = "80",
     val description: String = "",
+    val group: String = "",
     val username: String = "",
     val password: String = "",
 ) {
@@ -37,6 +42,11 @@ class EditDeviceViewModel(
     var showErrors by mutableStateOf(false)
         private set
 
+    /** Groups already in use, offered as one-tap choices. */
+    val existingGroups: StateFlow<List<String>> = repository.devices
+        .map { list -> list.map { it.group }.filter { it.isNotBlank() }.distinct().sorted() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     init {
         if (deviceId != null) {
             viewModelScope.launch {
@@ -47,6 +57,7 @@ class EditDeviceViewModel(
                     host = device.host,
                     port = device.port.toString(),
                     description = device.description,
+                    group = device.group,
                     username = device.username,
                     password = repository.password(device),
                 )
@@ -61,6 +72,7 @@ class EditDeviceViewModel(
     fun setDemo(enabled: Boolean) {
         form = if (enabled) {
             EditForm(
+                group = form.group,
                 isDemo = true,
                 host = DemoUnit.HOST,
                 port = DemoUnit.PORT.toString(),
@@ -86,6 +98,7 @@ class EditDeviceViewModel(
                     host = f.host.trim(),
                     port = f.port.toInt(),
                     description = f.description.trim(),
+                    group = f.group.trim(),
                     username = f.username.trim(),
                     isDemo = f.isDemo,
                 ),

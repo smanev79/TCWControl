@@ -9,7 +9,6 @@ import android.os.PowerManager
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.tcwcontrol.app.TcwApp
-import com.tcwcontrol.core.model.activeAlarms
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,17 +19,14 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Foreground service that polls every device while the app is closed and posts a notification
- * when a parameter goes into alarm. Only alarms that were not active on the previous check are
- * reported, so a lasting alarm notifies once.
+ * Foreground service that polls every device while the app is closed, so that alarms are logged
+ * and notified (see [com.tcwcontrol.app.data.DeviceRepository.fetchStatus]) even then.
  */
 class MonitorService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var loop: Job? = null
-    private val knownAlarms = ConcurrentHashMap<String, Set<String>>()
     private lateinit var notifier: AlarmNotifier
     private var wakeLock: PowerManager.WakeLock? = null
 
@@ -73,15 +69,9 @@ class MonitorService : Service() {
             }
             val devices = repository.devices.first()
             updateOngoing(devices.size)
+            // fetchStatus logs the alarms and notifies about new ones.
             devices.map { device ->
-                scope.async {
-                    val status = runCatching { repository.fetchStatus(device) }.getOrNull() ?: return@async
-                    val alarms = status.activeAlarms()
-                    val previous = knownAlarms[device.id].orEmpty()
-                    knownAlarms[device.id] = alarms.map { it.key }.toSet()
-                    val started = alarms.filter { it.key !in previous }
-                    if (started.isNotEmpty()) notifier.showAlarms(device, status.model, started)
-                }
+                scope.async { runCatching { repository.fetchStatus(device) } }
             }.awaitAll()
             delay(repository.alarmCheckSeconds.first() * 1000L)
         }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -18,6 +19,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.createSavedStateHandle
 import com.tcwcontrol.app.R
 import com.tcwcontrol.app.ui.appViewModel
@@ -113,6 +116,30 @@ fun EditDeviceScreen(onDone: () -> Unit, onDeleted: () -> Unit) {
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            TextField(
+                value = form.group,
+                onValueChange = { v -> vm.update { it.copy(group = v) } },
+                label = { Text(stringResource(R.string.group)) },
+                placeholder = { Text(stringResource(R.string.group_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            val groups by vm.existingGroups.collectAsStateWithLifecycle()
+            if (groups.isNotEmpty()) {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    groups.forEach { group ->
+                        FilterChip(
+                            selected = form.group.trim() == group,
+                            onClick = { vm.update { it.copy(group = group) } },
+                            label = { Text(group) },
+                        )
+                    }
+                }
+            }
 
             SectionTitle(stringResource(R.string.credentials))
             TextField(
