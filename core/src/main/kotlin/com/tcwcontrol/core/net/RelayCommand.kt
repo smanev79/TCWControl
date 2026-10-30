@@ -5,15 +5,16 @@ import com.tcwcontrol.core.model.DeviceFamily
 enum class RelayAction { ON, OFF, PULSE }
 
 /**
- * Builds the status.xml query that controls a relay. The two device families use different syntax:
+ * Builds the status.xml query that controls a relay. The device families use different syntax:
  *  - modern (TCW241 manual, section 8.2.3): ron/rof/rpl=n where n is a bit mask (R1=1, R2=2, R3=4, R4=8);
+ *    firmware 3.x devices are assumed to use the same commands (not yet verified on a device);
  *  - classic CM: rN=1 / rN=0 / plN=1.
  */
 object RelayCommand {
     fun query(family: DeviceFamily, relayIndex: Int, action: RelayAction): String {
         require(relayIndex >= 1) { "Relay index starts at 1" }
         return when (family) {
-            DeviceFamily.MODERN -> {
+            DeviceFamily.MODERN, DeviceFamily.CHANNELS -> {
                 val mask = 1 shl (relayIndex - 1)
                 when (action) {
                     RelayAction.ON -> "ron=$mask"

@@ -38,6 +38,9 @@ class DeviceDetailViewModel(
     val device: StateFlow<DeviceConfig?> = repository.device(deviceId)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    val confirmRelays: StateFlow<Boolean> = repository.confirmRelays
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     private val _state = MutableStateFlow(DetailState())
     val state: StateFlow<DetailState> = _state.asStateFlow()
 

@@ -20,12 +20,25 @@ data class Endpoint(
 
 class HttpStatusException(val code: Int) : IOException("HTTP $code")
 
+/** Size of one HTTP exchange with a device, for traffic statistics. Header sizes are approximate. */
+data class TrafficSample(
+    val host: String,
+    val port: Int,
+    val sentBytes: Long,
+    val receivedBytes: Long,
+    val success: Boolean,
+)
+
+private const val REQUEST_LINE_OVERHEAD = 16 // "GET " + " HTTP/1.1\r\n" and the like
+
 /** Blocking client; call it from a background dispatcher. */
 class TeracomClient(
     private val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
         .build(),
+    /** Called after every request, successful or not. */
+    private val onTraffic: (TrafficSample) -> Unit = {},
 ) {
     fun fetchStatus(endpoint: Endpoint): DeviceStatus = StatusParser.parse(get(endpoint, null))
 
@@ -50,9 +63,19 @@ class TeracomClient(
                 header("Authorization", Credentials.basic(endpoint.username, endpoint.password))
             }
         }.build()
-        http.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw HttpStatusException(response.code)
-            return response.body?.bytes() ?: throw IOException("Empty response")
+        val sent = request.url.toString().length + REQUEST_LINE_OVERHEAD + request.headers.byteCount()
+        var received = 0L
+        var success = false
+        try {
+            http.newCall(request).execute().use { response ->
+                val body = response.body?.bytes()
+                received = response.headers.byteCount() + (body?.size ?: 0)
+                if (!response.isSuccessful) throw HttpStatusException(response.code)
+                success = body != null
+                return body ?: throw IOException("Empty response")
+            }
+        } finally {
+            onTraffic(TrafficSample(endpoint.host, endpoint.port, sent, received, success))
         }
     }
 }

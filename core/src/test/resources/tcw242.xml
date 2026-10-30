@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Excerpt of the TCW242 demo unit's status.xml (2026-10-30): AL, MBR3-24, FUNC, WDG and CH13-23 trimmed. -->
+<Monitor>
+<DeviceInfo>
+<DeviceName>TCW242</DeviceName>
+<HostName>TCW242-LD      </HostName>
+<ID>5c:32:c5:00:ac:52</ID>
+<FwVer>TCW242-v3.018LD</FwVer>
+<MnfInfo>www.teracomsystems.com</MnfInfo>
+<SysContact>info@teracomsystems.com</SysContact>
+<SysName>tcw242</SysName>
+<SysLocation>Location</SysLocation>
+</DeviceInfo>
+<CH>
+<CH1><type>3</type><description>Production [LM]</description><value>8</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>34</selch></CH1>
+<CH2><type>2</type><description>V_DI2</description><value>closed</value><valuebin>1</valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>32</selch></CH2>
+<CH3><type>2</type><description>V_DI3</description><value>open</value><valuebin>1</valuebin><unit></unit><alarmbin>5</alarmbin><alarm>Major</alarm><selch>33</selch></CH3>
+<CH4><type>2</type><description>V_DI4</description><value>CLOSED</value><valuebin>0</valuebin><unit></unit><alarmbin>1</alarmbin><alarm>Normal</alarm><selch>31</selch></CH4>
+<CH5><type>0</type><description>V_AI1</description><value>1.000</value><valuebin></valuebin><unit></unit><alarmbin>4</alarmbin><alarm>Minor</alarm><selch>27</selch></CH5>
+<CH6><type>0</type><description>V06</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>2</alarmbin><alarm>---</alarm><selch>3</selch></CH6>
+<CH7><type>0</type><description>Stato porta</description><value>CLOSED</value><valuebin>0</valuebin><unit></unit><alarmbin>3</alarmbin><alarm>Warning</alarm><selch>31</selch></CH7>
+<CH8><type>2</type><description>Inductive Loop</description><value>CLOSED</value><valuebin>0</valuebin><unit></unit><alarmbin>2</alarmbin><alarm>---</alarm><selch>31</selch></CH8>
+<CH9><type>0</type><description>V09</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>2</alarmbin><alarm>---</alarm><selch>3</selch></CH9>
+<CH10><type>0</type><description>V10</description><value>3.308</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>28</selch></CH10>
+<CH11><type>0</type><description>V11 w23</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>0</selch></CH11>
+<CH12><type>0</type><description>V12</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>2</alarmbin><alarm>---</alarm><selch>0</selch></CH12>
+<CH24><type>0</type><description>V24</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>2</alarmbin><alarm>---</alarm><selch>0</selch></CH24>
+</CH>
+<R>
+<R1><description>DO1</description><value>OFF</value><valuebin>0</valuebin><pulseWidth>10.0</pulseWidth><control>IndLoopAlarm</control></R1>
+<R2><description>DO2</description><value>ON</value><valuebin>1</valuebin><pulseWidth>10.0</pulseWidth><control>AL_DI2</control></R2>
+<R3><description>DO3</description><value>OFF</value><valuebin>0</valuebin><pulseWidth>10.0</pulseWidth><control>Function 3</control></R3>
+<R4><description>DO4</description><value>OFF</value><valuebin>0</valuebin><pulseWidth>1.0</pulseWidth><control>Watchdog3</control></R4>
+</R>
+<MBR>
+<MBR1><description>Modbus Relay 1</description><value>No connection</value><valuebin>0</valuebin><control>0</control><conn>0</conn><valid>0</valid></MBR1>
+<MBR2><description>Modbus Relay  2</description><value>No connection,wait OFF</value><valuebin>1</valuebin><control>0</control><conn>0</conn><valid>1</valid></MBR2>
+</MBR>
+<Sys><hwerr></hwerr><HighAlarmbin>5</HighAlarmbin><HighAlarm>Major</HighAlarm></Sys>
+<Time><Date>30.10.2026</Date><Time>20:39:21</Time></Time>
+</Monitor>

@@ -8,6 +8,8 @@ data class Reading(
     val value: String,
     val unit: String,
     val alarm: Boolean = false,
+    /** Alarm level text from firmware 3.x devices (Warning, Minor, Major, Critical...), if any. */
+    val alarmLabel: String? = null,
 ) {
     val isPresent: Boolean get() = value.isNotBlank() && value != NO_VALUE
 }
@@ -35,6 +37,7 @@ data class DigitalInput(
     /** State text as reported by the device: OPEN, CLOSED or a user-defined label. */
     val state: String,
     val alarm: Boolean,
+    val alarmLabel: String? = null,
 )
 
 data class Relay(
@@ -51,6 +54,8 @@ data class Relay(
 enum class DeviceFamily {
     /** TCW241, TCW220, TCW210TH... (firmware 2.x, <DeviceInfo> in status.xml). */
     MODERN,
+    /** TCW242, TCW260... (firmware 3.x, a generic <CH> channel list). */
+    CHANNELS,
     /** TCW181B-CM, TCW122B-CM... (flat status.xml with <Device>). */
     CLASSIC,
 }

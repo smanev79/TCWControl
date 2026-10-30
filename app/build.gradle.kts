@@ -59,4 +59,6 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    // QR codes for sharing the device list: generating (zxing core) and camera scanning.
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }

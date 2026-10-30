@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,7 +37,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,6 +60,7 @@ import com.tcwcontrol.app.ui.theme.RelayButtonText
 import com.tcwcontrol.app.ui.theme.RelayOnGreen
 import com.tcwcontrol.app.ui.toUserMessage
 import com.tcwcontrol.core.model.AnalogInput
+import com.tcwcontrol.core.model.DeviceFamily
 import com.tcwcontrol.core.model.DeviceStatus
 import com.tcwcontrol.core.model.DigitalInput
 import com.tcwcontrol.core.model.Reading
@@ -72,6 +76,11 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
+    val confirmRelays by vm.confirmRelays.collectAsStateWithLifecycle()
+    var pendingRelay by remember { mutableStateOf<Pair<Int, RelayAction>?>(null) }
+    fun onRelay(index: Int, action: RelayAction) {
+        if (confirmRelays) pendingRelay = index to action else vm.relay(index, action)
+    }
 
     WhileVisible { vm.pollForever() }
     LaunchedEffect(vm) {
@@ -105,12 +114,38 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
                 )
             }
             when {
-                status != null -> StatusList(status, state.busyRelay, vm::relay)
+                status != null -> StatusList(status, state.busyRelay, ::onRelay)
                 state.error == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
         }
+    }
+
+    pendingRelay?.let { (index, action) ->
+        val name = state.status?.relays?.firstOrNull { it.index == index }?.name.orEmpty().ifEmpty { "Relay $index" }
+        AlertDialog(
+            onDismissRequest = { pendingRelay = null },
+            title = {
+                Text(
+                    stringResource(
+                        when (action) {
+                            RelayAction.ON -> R.string.confirm_relay_on
+                            RelayAction.OFF -> R.string.confirm_relay_off
+                            RelayAction.PULSE -> R.string.confirm_relay_pulse
+                        },
+                        name,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingRelay = null
+                    vm.relay(index, action)
+                }) { Text(stringResource(R.string.confirm)) }
+            },
+            dismissButton = { TextButton(onClick = { pendingRelay = null }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 }
 
@@ -118,7 +153,8 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
 private fun StatusList(status: DeviceStatus, busyRelay: Int?, onRelay: (Int, RelayAction) -> Unit) {
     LazyColumn(Modifier.fillMaxSize()) {
         section(R.string.sensors, status.sensors) { SensorRow(it) }
-        section(R.string.analog_inputs, status.analogInputs) { AnalogRow(it) }
+        val analogTitle = if (status.family == DeviceFamily.CHANNELS) R.string.channels else R.string.analog_inputs
+        section(analogTitle, status.analogInputs) { AnalogRow(it) }
         section(R.string.virtual_inputs, status.virtualInputs.filter { it.reading.isPresent }) { AnalogRow(it) }
         section(R.string.digital_inputs, status.digitalInputs) { DigitalRow(it) }
         section(R.string.relays, status.relays) { relay ->
@@ -177,10 +213,10 @@ private fun SensorRow(sensor: Sensor) = RowLayout(sensor.name) {
 }
 
 @Composable
-private fun AnalogRow(input: AnalogInput) = RowLayout(input.name) { ValueText(input.reading) }
+private fun AnalogRow(input: AnalogInput) = RowLayout(input.name, input.reading.alarmLabel) { ValueText(input.reading) }
 
 @Composable
-private fun DigitalRow(input: DigitalInput) = RowLayout(input.name) {
+private fun DigitalRow(input: DigitalInput) = RowLayout(input.name, input.alarmLabel) {
     Text(
         input.state,
         color = if (input.alarm) AlarmRed else MaterialTheme.colorScheme.onSurface,
