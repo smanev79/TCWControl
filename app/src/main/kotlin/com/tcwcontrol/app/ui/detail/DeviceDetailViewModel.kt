@@ -53,6 +53,22 @@ class DeviceDetailViewModel(
     // Keeps a poll and a relay command from overwriting each other's result.
     private val requestLock = Mutex()
 
+    private val _refreshing = MutableStateFlow(false)
+    /** True while a pull-to-refresh read is running. */
+    val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+
+    fun refreshNow() {
+        if (_refreshing.value) return
+        _refreshing.value = true
+        viewModelScope.launch {
+            try {
+                refresh()
+            } finally {
+                _refreshing.value = false
+            }
+        }
+    }
+
     suspend fun pollForever() {
         while (true) {
             refresh()
