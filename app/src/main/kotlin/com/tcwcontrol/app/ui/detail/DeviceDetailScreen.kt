@@ -119,7 +119,7 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
                 )
             }
             when {
-                status != null -> StatusList(status, state.busyRelay, state.pulse, ::onRelay)
+                status != null -> StatusList(status, state.busyRelays, state.pulses, ::onRelay)
                 state.error == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -155,7 +155,12 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
 }
 
 @Composable
-private fun StatusList(status: DeviceStatus, busyRelay: Int?, pulse: Pulse?, onRelay: (Int, RelayAction) -> Unit) {
+private fun StatusList(
+    status: DeviceStatus,
+    busyRelays: Set<Int>,
+    pulses: Map<Int, Long>,
+    onRelay: (Int, RelayAction) -> Unit,
+) {
     LazyColumn(Modifier.fillMaxSize()) {
         section(R.string.sensors, status.sensors) { SensorRow(it) }
         val analogTitle = if (status.family == DeviceFamily.CHANNELS) R.string.channels else R.string.analog_inputs
@@ -165,8 +170,8 @@ private fun StatusList(status: DeviceStatus, busyRelay: Int?, pulse: Pulse?, onR
         section(R.string.relays, status.relays) { relay ->
             RelayRow(
                 relay,
-                busy = busyRelay == relay.index,
-                pulseEndsAt = pulse?.takeIf { it.relayIndex == relay.index }?.endsAt,
+                busy = relay.index in busyRelays,
+                pulseEndsAt = pulses[relay.index],
                 onRelay = { onRelay(relay.index, it) },
             )
         }

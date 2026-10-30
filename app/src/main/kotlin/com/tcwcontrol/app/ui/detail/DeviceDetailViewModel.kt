@@ -25,13 +25,11 @@ import kotlinx.coroutines.sync.withLock
 data class DetailState(
     val status: DeviceStatus? = null,
     val error: Throwable? = null,
-    /** Relay index with a command in flight; its buttons are disabled meanwhile. */
-    val busyRelay: Int? = null,
-    /** A pulse in progress, shown with a countdown until the relay is read back after it. */
-    val pulse: Pulse? = null,
+    /** Relays with a command in flight; each relay is independent of the others. */
+    val busyRelays: Set<Int> = emptySet(),
+    /** Relay index -> when its pulse ends, shown with a countdown until the relay is read back after it. */
+    val pulses: Map<Int, Long> = emptyMap(),
 )
-
-data class Pulse(val relayIndex: Int, val endsAt: Long)
 
 class DeviceDetailViewModel(
     savedState: SavedStateHandle,
@@ -75,8 +73,8 @@ class DeviceDetailViewModel(
     fun relay(index: Int, action: RelayAction) {
         val config = device.value ?: return
         val status = _state.value.status ?: return
-        if (_state.value.busyRelay != null) return
-        _state.update { it.copy(busyRelay = index) }
+        if (index in _state.value.busyRelays) return
+        _state.update { it.copy(busyRelays = it.busyRelays + index) }
         viewModelScope.launch {
             val sent = requestLock.withLock {
                 runCatching { repository.controlRelay(config, status, index, action) }
@@ -85,7 +83,7 @@ class DeviceDetailViewModel(
                     .isSuccess
             }
             if (sent && action == RelayAction.PULSE) followPulse(index)
-            _state.update { it.copy(busyRelay = null, pulse = null) }
+            _state.update { it.copy(busyRelays = it.busyRelays - index, pulses = it.pulses - index) }
         }
     }
 
@@ -97,7 +95,7 @@ class DeviceDetailViewModel(
         val seconds = _state.value.status?.relays?.firstOrNull { it.index == index }?.pulseWidth
             ?.toDoubleOrNull()?.takeIf { it > 0 } ?: return
         val endsAt = System.currentTimeMillis() + (seconds * 1000).toLong()
-        _state.update { it.copy(pulse = Pulse(index, endsAt)) }
+        _state.update { it.copy(pulses = it.pulses + (index to endsAt)) }
         while (true) {
             val left = endsAt - System.currentTimeMillis()
             if (left <= 0) break
