@@ -1,6 +1,7 @@
 package com.tcwcontrol.app.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -31,6 +32,12 @@ class DeviceRepository(context: Context, private val client: TeracomClient = Ter
     }
 
     val refreshSeconds: Flow<Int> = store.data.map { it[REFRESH_SECONDS] ?: DEFAULT_REFRESH_SECONDS }
+
+    val monitoringEnabled: Flow<Boolean> = store.data.map { it[MONITORING] ?: false }
+
+    suspend fun setMonitoringEnabled(enabled: Boolean) {
+        store.edit { it[MONITORING] = enabled }
+    }
 
     fun device(id: String): Flow<DeviceConfig?> = devices.map { list -> list.firstOrNull { it.id == id } }
 
@@ -82,5 +89,6 @@ class DeviceRepository(context: Context, private val client: TeracomClient = Ter
         val REFRESH_OPTIONS = listOf(2, 5, 10, 30, 60)
         private val DEVICES = stringPreferencesKey("devices")
         private val REFRESH_SECONDS = intPreferencesKey("refresh_seconds")
+        private val MONITORING = booleanPreferencesKey("monitoring_enabled")
     }
 }

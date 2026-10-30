@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Excerpt of the TCW260 demo unit's status.xml (2026-10-30): channels CH1-CH15 only. -->
+<Monitor>
+<DeviceInfo>
+<DeviceName>TCW260</DeviceName>
+<HostName>TCW260-LD      </HostName>
+<ID>5c:32:c5:00:6e:ac</ID>
+<FwVer>TCW260-v3.010LD</FwVer>
+<MnfInfo>www.teracomsystems.com</MnfInfo>
+<SysContact></SysContact>
+<SysName>TCW260</SysName>
+<SysLocation>Location</SysLocation>
+</DeviceInfo>
+<CH>
+<CH1><type>0</type><description>Energy</description><value>10.000</value><valuebin></valuebin><unit>Watts/hour</unit><alarmbin>2</alarmbin><alarm>---</alarm><selch>33</selch></CH1>
+<CH2><type>0</type><description>Humidity</description><value>---</value><valuebin></valuebin><unit>%RH</unit><alarmbin>0</alarmbin><alarm></alarm><selch>4</selch></CH2>
+<CH3><type>0</type><description>Voltage</description><value>16.793</value><valuebin></valuebin><unit>V</unit><alarmbin>6</alarmbin><alarm>Critical</alarm><selch>28</selch></CH3>
+<CH4><type>3</type><description>makina1</description><value>19</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>3</selch></CH4>
+<CH5><type>0</type><description>V05</description><value>2.000</value><valuebin></valuebin><unit>kg</unit><alarmbin>0</alarmbin><alarm></alarm><selch>33</selch></CH5>
+<CH6><type>3</type><description>mak2</description><value>19</value><valuebin></valuebin><unit></unit><alarmbin>1</alarmbin><alarm>Normal</alarm><selch>3</selch></CH6>
+<CH7><type>0</type><description>V07</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>4</selch></CH7>
+<CH8><type>0</type><description>V08</description><value>39.784</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>3</selch></CH8>
+<CH9><type>3</type><description>V09</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>26</selch></CH9>
+<CH10><type>0</type><description>test</description><value>0.000</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>27</selch></CH10>
+<CH11><type>1</type><description>objem prietokom</description><value>1999999.999</value><valuebin></valuebin><unit>m3</unit><alarmbin>0</alarmbin><alarm></alarm><selch>33</selch></CH11>
+<CH12><type>2</type><description>V12 Test</description><value>OPEN</value><valuebin>1</valuebin><unit></unit><alarmbin>1</alarmbin><alarm>Normal</alarm><selch>36</selch></CH12>
+<CH13><type>0</type><description>V13</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>0</selch></CH13>
+<CH14><type>0</type><description>V14</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>0</selch></CH14>
+<CH15><type>0</type><description>V15</description><value>---</value><valuebin></valuebin><unit></unit><alarmbin>0</alarmbin><alarm></alarm><selch>0</selch></CH15>
+</CH>
+</Monitor>

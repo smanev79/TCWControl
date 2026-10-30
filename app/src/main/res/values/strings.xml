@@ -26,6 +26,15 @@
     <string name="virtual_inputs">Virtual inputs</string>
     <string name="digital_inputs">Digital inputs</string>
     <string name="relays">Relays</string>
+    <string name="channels">Channels</string>
+    <string name="alarm_notifications">Alarm notifications</string>
+    <string name="alarm_notifications_on">Alarm notifications on</string>
+    <string name="alarm_notifications_off">Alarm notifications off</string>
+    <string name="channel_alarms">Alarms</string>
+    <string name="channel_monitor">Background monitoring</string>
+    <string name="monitor_running">Watching %1$d devices for alarms</string>
+    <string name="alarm_title">Alarm: %1$s</string>
+    <string name="alarm_more">+%1$d more</string>
     <string name="on">ON</string>
     <string name="off">OFF</string>
     <string name="pulse">Pulse</string>

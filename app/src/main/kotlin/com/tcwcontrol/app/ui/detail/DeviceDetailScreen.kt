@@ -57,6 +57,7 @@ import com.tcwcontrol.app.ui.theme.RelayButtonText
 import com.tcwcontrol.app.ui.theme.RelayOnGreen
 import com.tcwcontrol.app.ui.toUserMessage
 import com.tcwcontrol.core.model.AnalogInput
+import com.tcwcontrol.core.model.DeviceFamily
 import com.tcwcontrol.core.model.DeviceStatus
 import com.tcwcontrol.core.model.DigitalInput
 import com.tcwcontrol.core.model.Reading
@@ -118,7 +119,8 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
 private fun StatusList(status: DeviceStatus, busyRelay: Int?, onRelay: (Int, RelayAction) -> Unit) {
     LazyColumn(Modifier.fillMaxSize()) {
         section(R.string.sensors, status.sensors) { SensorRow(it) }
-        section(R.string.analog_inputs, status.analogInputs) { AnalogRow(it) }
+        val analogTitle = if (status.family == DeviceFamily.CHANNELS) R.string.channels else R.string.analog_inputs
+        section(analogTitle, status.analogInputs) { AnalogRow(it) }
         section(R.string.virtual_inputs, status.virtualInputs.filter { it.reading.isPresent }) { AnalogRow(it) }
         section(R.string.digital_inputs, status.digitalInputs) { DigitalRow(it) }
         section(R.string.relays, status.relays) { relay ->
@@ -177,10 +179,10 @@ private fun SensorRow(sensor: Sensor) = RowLayout(sensor.name) {
 }
 
 @Composable
-private fun AnalogRow(input: AnalogInput) = RowLayout(input.name) { ValueText(input.reading) }
+private fun AnalogRow(input: AnalogInput) = RowLayout(input.name, input.reading.alarmLabel) { ValueText(input.reading) }
 
 @Composable
-private fun DigitalRow(input: DigitalInput) = RowLayout(input.name) {
+private fun DigitalRow(input: DigitalInput) = RowLayout(input.name, input.alarmLabel) {
     Text(
         input.state,
         color = if (input.alarm) AlarmRed else MaterialTheme.colorScheme.onSurface,

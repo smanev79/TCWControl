@@ -36,6 +36,12 @@ class DeviceListViewModel(private val repository: DeviceRepository) : ViewModel(
     val refreshSeconds: StateFlow<Int> = repository.refreshSeconds
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeviceRepository.DEFAULT_REFRESH_SECONDS)
 
+    val monitoringEnabled: StateFlow<Boolean> = repository.monitoringEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** Saved before the service starts, because the service stops itself when the setting is off. */
+    suspend fun setMonitoringEnabled(enabled: Boolean) = repository.setMonitoringEnabled(enabled)
+
     /** Polls every device until the caller's scope is cancelled (the screen leaves the foreground). */
     suspend fun pollForever() {
         while (true) {
