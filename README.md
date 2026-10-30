@@ -28,3 +28,6 @@ add a parser next to `ModernParser` and `ClassicParser`.
 ```
 
 The GitHub Actions workflow runs the same command and uploads the debug APK as an artifact.
+
+The latest debug APK from `main` is published as the `latest` pre-release:
+https://github.com/smanev79/TCWControl/releases/download/latest/TCWControl-debug.apk
