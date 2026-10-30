@@ -229,6 +229,16 @@ private fun DigitalRow(input: DigitalInput) = RowLayout(input.name, input.alarmL
 private fun RelayRow(relay: Relay, busy: Boolean, onRelay: (RelayAction) -> Unit) {
     val subtitle = relay.controlledBy?.let { stringResource(R.string.auto_control, it) }
     RowLayout(relay.name, subtitle) {
+        // The device switches this relay itself, so it only shows the state.
+        if (relay.controlledBy != null) {
+            Text(
+                stringResource(if (relay.isOn) R.string.on else R.string.off),
+                color = if (relay.isOn) RelayOnGreen else MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            return@RowLayout
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             RelayButton(
