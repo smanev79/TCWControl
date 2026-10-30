@@ -7,6 +7,12 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.tcwcontrol.app.ui.SplashScreen
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,6 +78,8 @@ class MainActivity : ComponentActivity() {
             }
             TcwTheme(dark = dark) {
                 val nav = rememberNavController()
+                // Only on a cold start, not when the activity is recreated (rotation, theme change).
+                var showSplash by rememberSaveable { mutableStateOf(savedInstanceState == null) }
                 NavHost(navController = nav, startDestination = Routes.DEVICES) {
                     composable(Routes.DEVICES) {
                         DeviceListScreen(
@@ -118,6 +126,14 @@ class MainActivity : ComponentActivity() {
                         openDeviceId = null
                     }
                 }
+                // Drawn over the app, which loads the devices underneath meanwhile.
+                AnimatedVisibility(visible = showSplash, enter = EnterTransition.None, exit = fadeOut()) {
+                    SplashScreen()
+                }
+                LaunchedEffect(Unit) {
+                    delay(SPLASH_MS)
+                    showSplash = false
+                }
             }
         }
     }
@@ -129,5 +145,6 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_DEVICE_ID = "device_id"
+        private const val SPLASH_MS = 1_200L
     }
 }
