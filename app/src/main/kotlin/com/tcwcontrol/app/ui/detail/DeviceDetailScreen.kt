@@ -38,11 +38,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +58,7 @@ import com.tcwcontrol.app.ui.WhileVisible
 import com.tcwcontrol.app.ui.appViewModel
 import com.tcwcontrol.app.ui.theme.AlarmRed
 import com.tcwcontrol.app.ui.theme.IndicatorOff
+import com.tcwcontrol.app.ui.theme.PulseAmber
 import com.tcwcontrol.app.ui.theme.RelayButtonBg
 import com.tcwcontrol.app.ui.theme.RelayButtonText
 import com.tcwcontrol.app.ui.theme.RelayOnGreen
@@ -67,6 +71,7 @@ import com.tcwcontrol.core.model.Reading
 import com.tcwcontrol.core.model.Relay
 import com.tcwcontrol.core.model.Sensor
 import com.tcwcontrol.core.net.RelayAction
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +119,7 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
                 )
             }
             when {
-                status != null -> StatusList(status, state.busyRelay, ::onRelay)
+                status != null -> StatusList(status, state.busyRelay, state.pulse, ::onRelay)
                 state.error == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -150,7 +155,7 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
 }
 
 @Composable
-private fun StatusList(status: DeviceStatus, busyRelay: Int?, onRelay: (Int, RelayAction) -> Unit) {
+private fun StatusList(status: DeviceStatus, busyRelay: Int?, pulse: Pulse?, onRelay: (Int, RelayAction) -> Unit) {
     LazyColumn(Modifier.fillMaxSize()) {
         section(R.string.sensors, status.sensors) { SensorRow(it) }
         val analogTitle = if (status.family == DeviceFamily.CHANNELS) R.string.channels else R.string.analog_inputs
@@ -158,7 +163,12 @@ private fun StatusList(status: DeviceStatus, busyRelay: Int?, onRelay: (Int, Rel
         section(R.string.virtual_inputs, status.virtualInputs.filter { it.reading.isPresent }) { AnalogRow(it) }
         section(R.string.digital_inputs, status.digitalInputs) { DigitalRow(it) }
         section(R.string.relays, status.relays) { relay ->
-            RelayRow(relay, busy = busyRelay == relay.index, onRelay = { onRelay(relay.index, it) })
+            RelayRow(
+                relay,
+                busy = busyRelay == relay.index,
+                pulseEndsAt = pulse?.takeIf { it.relayIndex == relay.index }?.endsAt,
+                onRelay = { onRelay(relay.index, it) },
+            )
         }
     }
 }
@@ -183,7 +193,12 @@ private fun <T> LazyListScope.section(title: Int, rows: List<T>, row: @Composabl
 }
 
 @Composable
-private fun RowLayout(name: String, subtitle: String? = null, trailing: @Composable () -> Unit) {
+private fun RowLayout(
+    name: String,
+    subtitle: String? = null,
+    subtitleColor: Color = Color.Unspecified,
+    trailing: @Composable () -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.Top,
@@ -191,7 +206,12 @@ private fun RowLayout(name: String, subtitle: String? = null, trailing: @Composa
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(name, style = MaterialTheme.typography.titleMedium)
             if (!subtitle.isNullOrEmpty()) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = subtitleColor.takeOrElse { MaterialTheme.colorScheme.onSurfaceVariant },
+                    fontWeight = if (subtitleColor.isSpecified) FontWeight.Bold else null,
+                )
             }
         }
         trailing()
@@ -226,9 +246,21 @@ private fun DigitalRow(input: DigitalInput) = RowLayout(input.name, input.alarmL
 }
 
 @Composable
-private fun RelayRow(relay: Relay, busy: Boolean, onRelay: (RelayAction) -> Unit) {
-    val subtitle = relay.controlledBy?.let { stringResource(R.string.auto_control, it) }
-    RowLayout(relay.name, subtitle) {
+private fun RelayRow(relay: Relay, busy: Boolean, pulseEndsAt: Long?, onRelay: (RelayAction) -> Unit) {
+    val secondsLeft by produceState<Long?>(null, pulseEndsAt) {
+        while (pulseEndsAt != null) {
+            val left = pulseEndsAt - System.currentTimeMillis()
+            value = (left + 999) / 1000
+            if (left <= 0) break
+            delay(left % 1000 + 1)
+        }
+    }
+    val subtitle = when {
+        pulseEndsAt != null && (secondsLeft ?: 1) > 0 -> stringResource(R.string.pulse_running, secondsLeft ?: 0)
+        pulseEndsAt != null -> stringResource(R.string.pulse_checking)
+        else -> relay.controlledBy?.let { stringResource(R.string.auto_control, it) }
+    }
+    RowLayout(relay.name, subtitle, subtitleColor = if (pulseEndsAt != null) PulseAmber else Color.Unspecified) {
         // The device switches this relay itself, so it only shows the state.
         if (relay.controlledBy != null) {
             Text(
@@ -239,18 +271,24 @@ private fun RelayRow(relay: Relay, busy: Boolean, onRelay: (RelayAction) -> Unit
             )
             return@RowLayout
         }
+        // During a pulse the buttons stay bright so the live state reads clearly; the view model ignores taps meanwhile.
+        val pulsing = pulseEndsAt != null
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            if (busy && !pulsing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             RelayButton(
                 label = stringResource(if (relay.isOn) R.string.on else R.string.off),
                 indicator = if (relay.isOn) RelayOnGreen else IndicatorOff,
-                enabled = !busy,
+                enabled = !busy || pulsing,
                 onClick = { onRelay(if (relay.isOn) RelayAction.OFF else RelayAction.ON) },
             )
             RelayButton(
-                label = stringResource(R.string.pulse),
-                indicator = IndicatorOff,
-                enabled = !busy,
+                label = if (pulsing && (secondsLeft ?: 0) > 0) {
+                    stringResource(R.string.pulse_seconds, secondsLeft ?: 0)
+                } else {
+                    stringResource(R.string.pulse)
+                },
+                indicator = if (pulsing) PulseAmber else IndicatorOff,
+                enabled = !busy || pulsing,
                 onClick = { onRelay(RelayAction.PULSE) },
             )
         }

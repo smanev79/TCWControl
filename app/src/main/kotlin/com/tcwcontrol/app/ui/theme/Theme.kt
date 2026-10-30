@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 val AlarmRed = Color(0xFFC62828)
 val OnlineGreen = Color(0xFF1E8E3E)
 val RelayOnGreen = Color(0xFF1E8E3E)
+val PulseAmber = Color(0xFFE08600)
 val OfflineGrey = Color(0xFF5B6776)
 val IndicatorOff = Color(0xFFC3CCD8)
 val RelayButtonBg = Color(0xFFE8EEF6)

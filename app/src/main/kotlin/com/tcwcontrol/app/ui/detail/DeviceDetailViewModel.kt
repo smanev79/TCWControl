@@ -27,7 +27,11 @@ data class DetailState(
     val error: Throwable? = null,
     /** Relay index with a command in flight; its buttons are disabled meanwhile. */
     val busyRelay: Int? = null,
+    /** A pulse in progress, shown with a countdown until the relay is read back after it. */
+    val pulse: Pulse? = null,
 )
+
+data class Pulse(val relayIndex: Int, val endsAt: Long)
 
 class DeviceDetailViewModel(
     savedState: SavedStateHandle,
@@ -58,12 +62,13 @@ class DeviceDetailViewModel(
         }
     }
 
-    private suspend fun refresh() {
+    private suspend fun refresh(): DeviceStatus? {
         val config = device.filterNotNull().first()
-        requestLock.withLock {
+        return requestLock.withLock {
             runCatching { repository.fetchStatus(config) }
                 .onSuccess { status -> _state.update { it.copy(status = status, error = null) } }
                 .onFailure { e -> _state.update { it.copy(error = e) } }
+                .getOrNull()
         }
     }
 
@@ -73,12 +78,42 @@ class DeviceDetailViewModel(
         if (_state.value.busyRelay != null) return
         _state.update { it.copy(busyRelay = index) }
         viewModelScope.launch {
-            requestLock.withLock {
+            val sent = requestLock.withLock {
                 runCatching { repository.controlRelay(config, status, index, action) }
                     .onSuccess { newStatus -> _state.update { it.copy(status = newStatus, error = null) } }
                     .onFailure { _relayErrors.send(it) }
+                    .isSuccess
             }
-            _state.update { it.copy(busyRelay = null) }
+            if (sent && action == RelayAction.PULSE) followPulse(index)
+            _state.update { it.copy(busyRelay = null, pulse = null) }
         }
+    }
+
+    /**
+     * Reads the device during the pulse so its state shows as it happens, then after the pulse ends
+     * until the relay reads back off (or a few tries have passed).
+     */
+    private suspend fun followPulse(index: Int) {
+        val seconds = _state.value.status?.relays?.firstOrNull { it.index == index }?.pulseWidth
+            ?.toDoubleOrNull()?.takeIf { it > 0 } ?: return
+        val endsAt = System.currentTimeMillis() + (seconds * 1000).toLong()
+        _state.update { it.copy(pulse = Pulse(index, endsAt)) }
+        while (true) {
+            val left = endsAt - System.currentTimeMillis()
+            if (left <= 0) break
+            delay(minOf(left, PULSE_POLL_MS))
+            if (endsAt - System.currentTimeMillis() > 0) refresh()
+        }
+        repeat(AFTER_PULSE_TRIES) {
+            delay(AFTER_PULSE_DELAY_MS)
+            val relay = refresh()?.relays?.firstOrNull { it.index == index }
+            if (relay != null && !relay.isOn) return
+        }
+    }
+
+    private companion object {
+        const val PULSE_POLL_MS = 1_000L
+        const val AFTER_PULSE_DELAY_MS = 700L
+        const val AFTER_PULSE_TRIES = 4
     }
 }
