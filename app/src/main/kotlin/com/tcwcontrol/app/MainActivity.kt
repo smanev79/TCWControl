@@ -145,6 +145,6 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_DEVICE_ID = "device_id"
-        private const val SPLASH_MS = 1_200L
+        private const val SPLASH_MS = 2_000L
     }
 }
