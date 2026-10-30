@@ -18,7 +18,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -99,16 +101,26 @@ class DeviceListViewModel(private val repository: DeviceRepository) : ViewModel(
         return repository.importDevices(text)
     }
 
-    /** Polls every device until the caller's scope is cancelled (the screen leaves the foreground). */
+    /**
+     * Polls every device until the caller's scope is cancelled (the screen leaves the foreground).
+     * Starts over at once when a device is added, removed or its address changes, or the interval
+     * changes, so a new device does not wait a whole interval for its first status.
+     */
     suspend fun pollForever() {
-        while (true) {
-            refreshAll()
-            delay(repository.refreshSeconds.first() * 1000L)
-        }
+        val targets = repository.devices
+            .map { list -> list.map { it.copy(description = "", group = "", lastModel = "") }.sortedBy { it.id } }
+            .distinctUntilChanged()
+        combine(targets, repository.refreshSeconds) { devices, seconds -> devices to seconds }
+            .collectLatest { (devices, seconds) ->
+                while (true) {
+                    refreshAll(devices)
+                    delay(seconds * 1000L)
+                }
+            }
     }
 
-    private suspend fun refreshAll() = coroutineScope {
-        repository.devices.first().map { device ->
+    private suspend fun refreshAll(devices: List<DeviceConfig>) = coroutineScope {
+        devices.map { device ->
             async {
                 val result = runCatching { repository.fetchStatus(device) }
                     .fold({ Connection.Online(it) }, { Connection.Offline(it) })
