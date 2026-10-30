@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 sealed interface Connection {
@@ -39,12 +40,33 @@ data class DeviceRow(val config: DeviceConfig, val connection: Connection) {
     }
 }
 
+/** Named groups in the user's order, then the rest by name; the ungrouped devices ("") last. */
+fun sortGroups(names: Collection<String>, order: List<String>): List<String> =
+    names.distinct().sortedWith(
+        compareBy<String>({ it.isEmpty() }, { order.indexOf(it).let { i -> if (i < 0) Int.MAX_VALUE else i } }, { it.lowercase() }),
+    )
+
 class DeviceListViewModel(private val repository: DeviceRepository) : ViewModel() {
     private val connections = MutableStateFlow<Map<String, Connection>>(emptyMap())
 
     val rows: StateFlow<List<DeviceRow>> = combine(repository.devices, connections) { devices, conn ->
         devices.map { DeviceRow(it, conn[it.id] ?: Connection.Unknown) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val groupOrder: StateFlow<List<String>> = repository.groupOrder
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun saveOrder(ids: List<String>) {
+        viewModelScope.launch { repository.reorderDevices(ids) }
+    }
+
+    fun setGroupOrder(groups: List<String>) {
+        viewModelScope.launch { repository.setGroupOrder(groups) }
+    }
+
+    fun renameGroup(from: String, to: String) {
+        viewModelScope.launch { repository.renameGroup(from, to) }
+    }
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query

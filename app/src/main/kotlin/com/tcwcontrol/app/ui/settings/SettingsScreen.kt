@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tcwcontrol.app.R
 import com.tcwcontrol.app.data.DeviceRepository
 import com.tcwcontrol.app.data.DeviceTraffic
+import com.tcwcontrol.app.data.ThemeMode
 import com.tcwcontrol.app.monitor.MonitorService
 import com.tcwcontrol.app.ui.appViewModel
 import com.tcwcontrol.app.ui.theme.AlarmRed
@@ -80,6 +81,8 @@ fun SettingsScreen(onBack: () -> Unit) {
     var pickAlarmInterval by remember { mutableStateOf(false) }
     var pickRefresh by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    var pickTheme by remember { mutableStateOf(false) }
+    val theme by vm.themeMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -121,6 +124,13 @@ fun SettingsScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(vertical = 8.dp),
         ) {
+            SectionTitle(stringResource(R.string.section_appearance))
+            ValueRow(
+                title = stringResource(R.string.theme),
+                value = themeLabel(theme),
+                onClick = { pickTheme = true },
+            )
+
             SectionTitle(stringResource(R.string.section_alarms))
             SwitchRow(
                 title = stringResource(R.string.alarm_notifications),
@@ -177,6 +187,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 pickAlarmInterval = false
             },
             onDismiss = { pickAlarmInterval = false },
+            label = { intervalLabel(it) },
         )
     }
     if (pickRefresh) {
@@ -189,6 +200,20 @@ fun SettingsScreen(onBack: () -> Unit) {
                 pickRefresh = false
             },
             onDismiss = { pickRefresh = false },
+            label = { intervalLabel(it) },
+        )
+    }
+    if (pickTheme) {
+        OptionDialog(
+            title = stringResource(R.string.theme),
+            options = ThemeMode.entries,
+            current = theme,
+            onPick = {
+                vm.setThemeMode(it)
+                pickTheme = false
+            },
+            onDismiss = { pickTheme = false },
+            label = { themeLabel(it) },
         )
     }
     if (confirmReset) {
@@ -371,21 +396,28 @@ private fun ValueRow(
 }
 
 @Composable
-private fun OptionDialog(title: String, options: List<Int>, current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+private fun <T> OptionDialog(
+    title: String,
+    options: List<T>,
+    current: T,
+    onPick: (T) -> Unit,
+    onDismiss: () -> Unit,
+    label: @Composable (T) -> String,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
             Column {
-                options.forEach { seconds ->
+                options.forEach { option ->
                     Row(
-                        Modifier.fillMaxWidth().selectable(selected = seconds == current) { onPick(seconds) }
+                        Modifier.fillMaxWidth().selectable(selected = option == current) { onPick(option) }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected = seconds == current, onClick = null)
+                        RadioButton(selected = option == current, onClick = null)
                         Spacer(Modifier.width(8.dp))
-                        Text(intervalLabel(seconds))
+                        Text(label(option))
                     }
                 }
             }
@@ -393,6 +425,15 @@ private fun OptionDialog(title: String, options: List<Int>, current: Int, onPick
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
+
+@Composable
+private fun themeLabel(mode: ThemeMode) = stringResource(
+    when (mode) {
+        ThemeMode.LIGHT -> R.string.theme_light
+        ThemeMode.DARK -> R.string.theme_dark
+        ThemeMode.SYSTEM -> R.string.theme_system
+    },
+)
 
 @Composable
 private fun intervalLabel(seconds: Int) =

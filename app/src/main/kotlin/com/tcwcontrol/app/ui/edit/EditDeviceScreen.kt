@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -108,6 +111,40 @@ fun EditDeviceScreen(onDone: () -> Unit, onDeleted: () -> Unit) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
             )
+            Row(
+                Modifier.fillMaxWidth().toggleable(value = form.useHttps, enabled = !form.isDemo, onValueChange = vm::setHttps),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.use_https), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        stringResource(R.string.use_https_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = form.useHttps, onCheckedChange = null, enabled = !form.isDemo)
+            }
+            if (form.useHttps) {
+                Row(
+                    Modifier.fillMaxWidth().toggleable(
+                        value = form.allowSelfSigned,
+                        onValueChange = { v -> vm.update { it.copy(allowSelfSigned = v) } },
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = form.allowSelfSigned, onCheckedChange = null)
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(stringResource(R.string.allow_self_signed))
+                        Text(
+                            stringResource(R.string.allow_self_signed_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
             TextField(
                 value = form.description,
                 onValueChange = { v -> vm.update { it.copy(description = v) } },

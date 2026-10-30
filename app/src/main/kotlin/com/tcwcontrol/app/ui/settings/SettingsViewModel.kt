@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tcwcontrol.app.data.DeviceRepository
 import com.tcwcontrol.app.data.DeviceTraffic
+import com.tcwcontrol.app.data.ThemeMode
 import com.tcwcontrol.app.data.TrafficCounter
 import com.tcwcontrol.app.data.TrafficTotals
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +25,7 @@ class SettingsViewModel(private val repository: DeviceRepository) : ViewModel() 
     val alarmLogEnabled = repository.alarmLogEnabled.state(true)
     val refreshSeconds = repository.refreshSeconds.state(DeviceRepository.DEFAULT_REFRESH_SECONDS)
     val confirmRelays = repository.confirmRelays.state(false)
+    val themeMode = repository.themeMode.state(ThemeMode.LIGHT)
 
     val traffic: StateFlow<TrafficView> = combine(repository.traffic.totals, repository.devices) { totals, devices ->
         val names = devices.associate { TrafficCounter.key(it.host, it.port) to repository.displayName(it) }
@@ -39,6 +41,7 @@ class SettingsViewModel(private val repository: DeviceRepository) : ViewModel() 
     fun setAlarmLogEnabled(enabled: Boolean) = launch { repository.setAlarmLogEnabled(enabled) }
     fun setRefreshSeconds(seconds: Int) = launch { repository.setRefreshSeconds(seconds) }
     fun setConfirmRelays(enabled: Boolean) = launch { repository.setConfirmRelays(enabled) }
+    fun setThemeMode(mode: ThemeMode) = launch { repository.setThemeMode(mode) }
 
     fun resetTraffic() = repository.traffic.reset()
 

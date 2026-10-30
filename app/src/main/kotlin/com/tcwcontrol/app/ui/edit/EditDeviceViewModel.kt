@@ -24,6 +24,8 @@ data class EditForm(
     val group: String = "",
     val username: String = "",
     val password: String = "",
+    val useHttps: Boolean = false,
+    val allowSelfSigned: Boolean = false,
 ) {
     val hostError: Boolean get() = host.isBlank()
     val portError: Boolean get() = port.toIntOrNull()?.let { it !in 1..65535 } ?: true
@@ -60,6 +62,8 @@ class EditDeviceViewModel(
                     group = device.group,
                     username = device.username,
                     password = repository.password(device),
+                    useHttps = device.useHttps,
+                    allowSelfSigned = device.allowSelfSigned,
                 )
             }
         }
@@ -67,6 +71,18 @@ class EditDeviceViewModel(
 
     fun update(transform: (EditForm) -> EditForm) {
         form = transform(form)
+    }
+
+    /** Also swaps the standard port, so a device on the default port needs no second change. */
+    fun setHttps(enabled: Boolean) {
+        form = form.copy(
+            useHttps = enabled,
+            port = when {
+                enabled && form.port == "80" -> "443"
+                !enabled && form.port == "443" -> "80"
+                else -> form.port
+            },
+        )
     }
 
     fun setDemo(enabled: Boolean) {
@@ -101,6 +117,8 @@ class EditDeviceViewModel(
                     group = f.group.trim(),
                     username = f.username.trim(),
                     isDemo = f.isDemo,
+                    useHttps = f.useHttps,
+                    allowSelfSigned = f.useHttps && f.allowSelfSigned,
                 ),
                 plainPassword = f.password,
             )

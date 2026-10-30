@@ -2,8 +2,10 @@ package com.tcwcontrol.core
 
 import com.tcwcontrol.core.model.DeviceFamily
 import com.tcwcontrol.core.model.activeAlarms
+import com.tcwcontrol.core.net.Endpoint
 import com.tcwcontrol.core.net.RelayAction
 import com.tcwcontrol.core.net.RelayCommand
+import com.tcwcontrol.core.net.TeracomClient
 import com.tcwcontrol.core.parser.StatusParser
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -144,5 +146,17 @@ class StatusParserTest {
         assertEquals("rpl=1", RelayCommand.query(DeviceFamily.MODERN, 1, RelayAction.PULSE))
         assertEquals("r2=1", RelayCommand.query(DeviceFamily.CLASSIC, 2, RelayAction.ON))
         assertEquals("pl5=1", RelayCommand.query(DeviceFamily.CLASSIC, 5, RelayAction.PULSE))
+    }
+
+    @Test
+    fun statusUrl() {
+        assertEquals(
+            "http://10.0.0.5:8080/status.xml?ron=1",
+            TeracomClient.statusUrl(Endpoint(" 10.0.0.5 ", 8080), "ron=1").toString(),
+        )
+        assertEquals(
+            "https://tcw.example.com/status.xml",
+            TeracomClient.statusUrl(Endpoint("tcw.example.com", 443, https = true)).toString(),
+        )
     }
 }

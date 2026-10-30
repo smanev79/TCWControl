@@ -14,7 +14,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.tcwcontrol.app.MainActivity
 import com.tcwcontrol.app.R
-import com.tcwcontrol.app.ui.theme.AlarmRed
+import com.tcwcontrol.app.ui.theme.NotificationRed
 import com.tcwcontrol.core.model.ActiveAlarm
 
 class AlarmNotifier(private val context: Context) {
@@ -48,7 +48,7 @@ class AlarmNotifier(private val context: Context) {
         if (alarms.size > MAX_LINES) style.setSummaryText(context.getString(R.string.alarm_more, alarms.size - MAX_LINES))
         val notification = NotificationCompat.Builder(context, CHANNEL_ALARMS)
             .setSmallIcon(R.drawable.ic_stat_alarm)
-            .setColor(AlarmRed.toArgb())
+            .setColor(NotificationRed.toArgb())
             .setContentTitle(context.getString(R.string.alarm_title, name))
             .setContentText(lines.joinToString(", "))
             .setStyle(style)

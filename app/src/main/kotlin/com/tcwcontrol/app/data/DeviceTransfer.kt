@@ -24,6 +24,8 @@ data class TransferDevice(
     /** Plain text; only present when the user chose to include passwords. */
     val password: String? = null,
     val isDemo: Boolean = false,
+    val useHttps: Boolean = false,
+    val allowSelfSigned: Boolean = false,
 )
 
 data class ImportResult(val added: Int, val skipped: Int)

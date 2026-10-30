@@ -3,17 +3,23 @@ package com.tcwcontrol.app
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.tcwcontrol.app.data.ThemeMode
 import com.tcwcontrol.app.monitor.AlarmNotifier
 import com.tcwcontrol.app.monitor.MonitorService
 import com.tcwcontrol.app.ui.alarms.AlarmLogScreen
@@ -47,8 +53,24 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             if ((application as TcwApp).repository.monitoringEnabled.first()) MonitorService.start(this@MainActivity)
         }
+        val repository = (application as TcwApp).repository
         setContent {
-            TcwTheme {
+            val mode by repository.themeMode.collectAsStateWithLifecycle(ThemeMode.LIGHT)
+            val dark = when (mode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+            DisposableEffect(dark) {
+                val style = if (dark) {
+                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                } else {
+                    SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+                }
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                onDispose {}
+            }
+            TcwTheme(dark = dark) {
                 val nav = rememberNavController()
                 NavHost(navController = nav, startDestination = Routes.DEVICES) {
                     composable(Routes.DEVICES) {

@@ -1,6 +1,12 @@
 package com.tcwcontrol.app.ui.detail
 
 import androidx.compose.foundation.background
+import com.tcwcontrol.app.ui.theme.OnlineGreen
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -119,7 +125,7 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
                 )
             }
             when {
-                status != null -> StatusList(status, state.busyRelay, state.pulse, ::onRelay)
+                status != null -> StatusList(status, state.busyRelays, state.pulses, ::onRelay)
                 state.error == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -155,7 +161,12 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
 }
 
 @Composable
-private fun StatusList(status: DeviceStatus, busyRelay: Int?, pulse: Pulse?, onRelay: (Int, RelayAction) -> Unit) {
+private fun StatusList(
+    status: DeviceStatus,
+    busyRelays: Set<Int>,
+    pulses: Map<Int, Long>,
+    onRelay: (Int, RelayAction) -> Unit,
+) {
     LazyColumn(Modifier.fillMaxSize()) {
         section(R.string.sensors, status.sensors) { SensorRow(it) }
         val analogTitle = if (status.family == DeviceFamily.CHANNELS) R.string.channels else R.string.analog_inputs
@@ -165,8 +176,8 @@ private fun StatusList(status: DeviceStatus, busyRelay: Int?, pulse: Pulse?, onR
         section(R.string.relays, status.relays) { relay ->
             RelayRow(
                 relay,
-                busy = busyRelay == relay.index,
-                pulseEndsAt = pulse?.takeIf { it.relayIndex == relay.index }?.endsAt,
+                busy = relay.index in busyRelays,
+                pulseEndsAt = pulses[relay.index],
                 onRelay = { onRelay(relay.index, it) },
             )
         }
@@ -178,12 +189,14 @@ private fun <T> LazyListScope.section(title: Int, rows: List<T>, row: @Composabl
     item {
         Text(
             stringResource(title).uppercase(),
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.8.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(start = 16.dp, top = 16.dp, bottom = 6.dp),
+                .padding(start = 14.dp, top = 10.dp, bottom = 4.dp),
         )
     }
     items(rows) {
@@ -192,23 +205,34 @@ private fun <T> LazyListScope.section(title: Int, rows: List<T>, row: @Composabl
     }
 }
 
+/** One compact line: status dot, name with an optional note under it, and the value on the right. */
 @Composable
 private fun RowLayout(
     name: String,
     subtitle: String? = null,
     subtitleColor: Color = Color.Unspecified,
+    dot: Color? = null,
+    alarm: Boolean = false,
     trailing: @Composable () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.Top,
+        Modifier
+            .fillMaxWidth()
+            .then(if (alarm) Modifier.background(AlarmRed.copy(alpha = 0.07f)) else Modifier)
+            .heightIn(min = 40.dp)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(name, style = MaterialTheme.typography.titleMedium)
+        if (dot != null) {
+            Box(Modifier.size(8.dp).background(dot, CircleShape))
+            Spacer(Modifier.width(10.dp))
+        }
+        Column(Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(name, style = MaterialTheme.typography.bodyMedium)
             if (!subtitle.isNullOrEmpty()) {
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = subtitleColor.takeOrElse { MaterialTheme.colorScheme.onSurfaceVariant },
                     fontWeight = if (subtitleColor.isSpecified) FontWeight.Bold else null,
                 )
@@ -219,29 +243,58 @@ private fun RowLayout(
 }
 
 @Composable
-private fun ValueText(reading: Reading) {
-    val color = if (reading.alarm) AlarmRed else MaterialTheme.colorScheme.onSurface
-    val text = if (reading.isPresent) "${reading.value} ${reading.unit}".trim() else "---"
-    Text(text, color = color, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, style = MaterialTheme.typography.titleMedium)
+private fun readingDot(present: Boolean, alarm: Boolean) = when {
+    alarm -> AlarmRed
+    present -> OnlineGreen
+    else -> IndicatorOff
 }
 
 @Composable
-private fun SensorRow(sensor: Sensor) = RowLayout(sensor.name) {
-    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        sensor.readings.forEach { ValueText(it) }
+private fun ValueText(reading: Reading) {
+    val color = if (reading.alarm) AlarmRed else MaterialTheme.colorScheme.onSurface
+    val text = if (reading.isPresent) "${reading.value} ${reading.unit}".trim() else "---"
+    Text(
+        text,
+        color = color,
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Medium,
+        textAlign = TextAlign.End,
+        style = MaterialTheme.typography.bodyMedium,
+    )
+}
+
+@Composable
+private fun SensorRow(sensor: Sensor) = RowLayout(
+    sensor.name,
+    dot = readingDot(sensor.isConnected, sensor.alarm),
+    alarm = sensor.alarm,
+) {
+    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        sensor.readings.filter { it.isPresent }.ifEmpty { sensor.readings.take(1) }.forEach { ValueText(it) }
     }
 }
 
 @Composable
-private fun AnalogRow(input: AnalogInput) = RowLayout(input.name, input.reading.alarmLabel) { ValueText(input.reading) }
+private fun AnalogRow(input: AnalogInput) = RowLayout(
+    input.name,
+    input.reading.alarmLabel,
+    dot = readingDot(input.reading.isPresent, input.reading.alarm),
+    alarm = input.reading.alarm,
+) { ValueText(input.reading) }
 
 @Composable
-private fun DigitalRow(input: DigitalInput) = RowLayout(input.name, input.alarmLabel) {
+private fun DigitalRow(input: DigitalInput) = RowLayout(
+    input.name,
+    input.alarmLabel,
+    dot = readingDot(present = true, alarm = input.alarm),
+    alarm = input.alarm,
+) {
     Text(
         input.state,
         color = if (input.alarm) AlarmRed else MaterialTheme.colorScheme.onSurface,
-        fontWeight = FontWeight.Bold,
-        style = MaterialTheme.typography.titleMedium,
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Medium,
+        style = MaterialTheme.typography.bodyMedium,
     )
 }
 
@@ -260,21 +313,31 @@ private fun RelayRow(relay: Relay, busy: Boolean, pulseEndsAt: Long?, onRelay: (
         pulseEndsAt != null -> stringResource(R.string.pulse_checking)
         else -> relay.controlledBy?.let { stringResource(R.string.auto_control, it) }
     }
-    RowLayout(relay.name, subtitle, subtitleColor = if (pulseEndsAt != null) PulseAmber else Color.Unspecified) {
+    RowLayout(
+        relay.name,
+        subtitle,
+        subtitleColor = if (pulseEndsAt != null) PulseAmber else Color.Unspecified,
+        dot = when {
+            pulseEndsAt != null -> PulseAmber
+            relay.isOn -> RelayOnGreen
+            else -> IndicatorOff
+        },
+    ) {
         // The device switches this relay itself, so it only shows the state.
         if (relay.controlledBy != null) {
             Text(
                 stringResource(if (relay.isOn) R.string.on else R.string.off),
                 color = if (relay.isOn) RelayOnGreen else MaterialTheme.colorScheme.onSurface,
+                fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyMedium,
             )
             return@RowLayout
         }
         // During a pulse the buttons stay bright so the live state reads clearly; the view model ignores taps meanwhile.
         val pulsing = pulseEndsAt != null
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (busy && !pulsing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (busy && !pulsing) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
             RelayButton(
                 label = stringResource(if (relay.isOn) R.string.on else R.string.off),
                 indicator = if (relay.isOn) RelayOnGreen else IndicatorOff,
@@ -300,14 +363,15 @@ private fun RelayButton(label: String, indicator: Color, enabled: Boolean, onCli
     Button(
         onClick = onClick,
         enabled = enabled,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(6.dp),
         colors = ButtonDefaults.buttonColors(containerColor = RelayButtonBg, contentColor = RelayButtonText),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+        modifier = Modifier.heightIn(min = 32.dp).widthIn(min = 56.dp),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(4.dp))
-            Box(Modifier.width(40.dp).height(4.dp).background(indicator, RoundedCornerShape(2.dp)))
+            Text(label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(3.dp))
+            Box(Modifier.width(28.dp).height(3.dp).background(indicator, RoundedCornerShape(2.dp)))
         }
     }
 }
