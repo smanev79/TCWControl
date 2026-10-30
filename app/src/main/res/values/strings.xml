@@ -73,6 +73,9 @@
     <string name="on">ON</string>
     <string name="off">OFF</string>
     <string name="pulse">Pulse</string>
+    <string name="pulse_running">IN PULSE · %1$d s left</string>
+    <string name="pulse_seconds">%1$d s</string>
+    <string name="pulse_checking">Pulse ended, reading the relay…</string>
     <string name="auto_control">Controlled by %1$s</string>
     <string name="online">Online</string>
     <string name="alarm">Alarm</string>
