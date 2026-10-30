@@ -1,27 +1,31 @@
 package com.tcwcontrol.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-val AlarmRed = Color(0xFFE57373)
-val OnlineGreen = Color(0xFF7CC576)
-val RelayOnGreen = Color(0xFF76E05A)
-val ButtonGrey = Color(0xFF9E9E9E)
+val AlarmRed = Color(0xFFC62828)
+val OnlineGreen = Color(0xFF1E8E3E)
+val RelayOnGreen = Color(0xFF1E8E3E)
+val IndicatorOff = Color(0xFFC3CCD8)
+val RelayButtonBg = Color(0xFFE8EEF6)
+val RelayButtonText = Color(0xFF0B5CAD)
 
-private val Colors = darkColorScheme(
-    primary = Color(0xFF8FA3C2),
-    onPrimary = Color(0xFF0E1622),
-    secondary = Color(0xFF6B7B95),
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
-    surfaceVariant = Color(0xFF262626),
-    onBackground = Color(0xFFECECEC),
-    onSurface = Color(0xFFECECEC),
-    onSurfaceVariant = Color(0xFFB0B0B0),
+private val Colors = lightColorScheme(
+    primary = Color(0xFF0B5CAD),
+    onPrimary = Color.White,
+    secondary = Color(0xFF0B5CAD),
+    onSecondary = Color.White,
+    background = Color(0xFFF3F5F8),
+    surface = Color.White,
+    surfaceVariant = Color(0xFFE8EEF6),
+    onBackground = Color(0xFF16202C),
+    onSurface = Color(0xFF16202C),
+    onSurfaceVariant = Color(0xFF5B6776),
     error = AlarmRed,
-    outlineVariant = Color(0xFF3A3A3A),
+    onError = Color.White,
+    outlineVariant = Color(0xFFE1E6EC),
 )
 
 @Composable

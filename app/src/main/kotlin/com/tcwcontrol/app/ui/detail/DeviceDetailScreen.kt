@@ -51,7 +51,9 @@ import com.tcwcontrol.app.R
 import com.tcwcontrol.app.ui.WhileVisible
 import com.tcwcontrol.app.ui.appViewModel
 import com.tcwcontrol.app.ui.theme.AlarmRed
-import com.tcwcontrol.app.ui.theme.ButtonGrey
+import com.tcwcontrol.app.ui.theme.IndicatorOff
+import com.tcwcontrol.app.ui.theme.RelayButtonBg
+import com.tcwcontrol.app.ui.theme.RelayButtonText
 import com.tcwcontrol.app.ui.theme.RelayOnGreen
 import com.tcwcontrol.app.ui.toUserMessage
 import com.tcwcontrol.core.model.AnalogInput
@@ -195,13 +197,13 @@ private fun RelayRow(relay: Relay, busy: Boolean, onRelay: (RelayAction) -> Unit
             if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             RelayButton(
                 label = stringResource(if (relay.isOn) R.string.on else R.string.off),
-                indicator = if (relay.isOn) RelayOnGreen else Color(0xFF6E6E6E),
+                indicator = if (relay.isOn) RelayOnGreen else IndicatorOff,
                 enabled = !busy,
                 onClick = { onRelay(if (relay.isOn) RelayAction.OFF else RelayAction.ON) },
             )
             RelayButton(
                 label = stringResource(R.string.pulse),
-                indicator = Color(0xFF6E6E6E),
+                indicator = IndicatorOff,
                 enabled = !busy,
                 onClick = { onRelay(RelayAction.PULSE) },
             )
@@ -215,7 +217,7 @@ private fun RelayButton(label: String, indicator: Color, enabled: Boolean, onCli
         onClick = onClick,
         enabled = enabled,
         shape = RoundedCornerShape(10.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = ButtonGrey, contentColor = Color.White),
+        colors = ButtonDefaults.buttonColors(containerColor = RelayButtonBg, contentColor = RelayButtonText),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
