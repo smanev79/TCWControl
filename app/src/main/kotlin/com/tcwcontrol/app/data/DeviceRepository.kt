@@ -210,7 +210,7 @@ class DeviceRepository(context: Context) {
     }
 
     companion object {
-        const val DEFAULT_REFRESH_SECONDS = 5
+        const val DEFAULT_REFRESH_SECONDS = 60
         val REFRESH_OPTIONS = listOf(2, 5, 10, 30, 60)
         const val DEFAULT_ALARM_CHECK_SECONDS = 60
         val ALARM_CHECK_OPTIONS = listOf(30, 60, 120, 300, 600, 900, 1800)

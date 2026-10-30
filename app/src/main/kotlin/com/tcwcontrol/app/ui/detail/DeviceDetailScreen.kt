@@ -40,6 +40,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -85,6 +86,7 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
     val vm = appViewModel { DeviceDetailViewModel(createSavedStateHandle(), it) }
     val device by vm.device.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
+    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     val confirmRelays by vm.confirmRelays.collectAsStateWithLifecycle()
@@ -124,10 +126,18 @@ fun DeviceDetailScreen(onBack: () -> Unit, onEdit: (String) -> Unit) {
                     modifier = Modifier.fillMaxWidth().background(AlarmRed).padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
-            when {
-                status != null -> StatusList(status, state.busyRelays, state.pulses, ::onRelay)
-                state.error == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            PullToRefreshBox(
+                isRefreshing = refreshing,
+                onRefresh = vm::refreshNow,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                when {
+                    status != null -> StatusList(status, state.busyRelays, state.pulses, ::onRelay)
+                    state.error == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    // Nothing to show yet, but the list still takes the pull gesture so an offline device can be retried.
+                    else -> LazyColumn(Modifier.fillMaxSize()) {}
                 }
             }
         }
