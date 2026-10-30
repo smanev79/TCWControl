@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TCW Control</string>
+    <string name="my_devices">My Devices</string>
+    <string name="add">Add</string>
+    <string name="refresh_interval">Refresh interval</string>
+    <string name="edit">Edit</string>
+    <string name="add_device">Add Device</string>
+    <string name="edit_device">Edit Device</string>
+    <string name="demo_unit">Demo Unit</string>
+    <string name="unit_details">Unit details</string>
+    <string name="host">IP address or host name</string>
+    <string name="port">Port</string>
+    <string name="description">Description</string>
+    <string name="credentials">Credentials</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="back">Back</string>
+    <string name="delete_confirm">Delete this device?</string>
+    <string name="no_devices">No devices yet. Tap Add to add one.</string>
+    <string name="sensors">Sensors</string>
+    <string name="analog_inputs">Analog inputs</string>
+    <string name="virtual_inputs">Virtual inputs</string>
+    <string name="digital_inputs">Digital inputs</string>
+    <string name="relays">Relays</string>
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
+    <string name="pulse">Pulse</string>
+    <string name="auto_control">Controlled by %1$s</string>
+    <string name="online">Online</string>
+    <string name="alarm">Alarm</string>
+    <string name="offline">Offline</string>
+    <string name="connecting">Connecting…</string>
+    <string name="unknown_device">Unknown device</string>
+    <string name="error_host">Enter an IP address or host name</string>
+    <string name="error_port">Port must be between 1 and 65535</string>
+    <string name="error_auth">Wrong username or password</string>
+    <string name="error_connection">Cannot reach the device: %1$s</string>
+    <string name="error_format">The device returned data this app cannot read</string>
+    <string name="relay_failed">Relay command failed: %1$s</string>
+    <string name="seconds">%1$d s</string>
+</resources>

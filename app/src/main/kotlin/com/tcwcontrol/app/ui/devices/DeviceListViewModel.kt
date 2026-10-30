@@ -1,0 +1,60 @@
+package com.tcwcontrol.app.ui.devices
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tcwcontrol.app.data.DeviceConfig
+import com.tcwcontrol.app.data.DeviceRepository
+import com.tcwcontrol.core.model.DeviceStatus
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+sealed interface Connection {
+    data object Unknown : Connection
+    data class Online(val status: DeviceStatus) : Connection
+    data class Offline(val error: Throwable) : Connection
+}
+
+data class DeviceRow(val config: DeviceConfig, val connection: Connection)
+
+class DeviceListViewModel(private val repository: DeviceRepository) : ViewModel() {
+    private val connections = MutableStateFlow<Map<String, Connection>>(emptyMap())
+
+    val rows: StateFlow<List<DeviceRow>> = combine(repository.devices, connections) { devices, conn ->
+        devices.map { DeviceRow(it, conn[it.id] ?: Connection.Unknown) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val refreshSeconds: StateFlow<Int> = repository.refreshSeconds
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeviceRepository.DEFAULT_REFRESH_SECONDS)
+
+    /** Polls every device until the caller's scope is cancelled (the screen leaves the foreground). */
+    suspend fun pollForever() {
+        while (true) {
+            refreshAll()
+            delay(repository.refreshSeconds.first() * 1000L)
+        }
+    }
+
+    private suspend fun refreshAll() = coroutineScope {
+        repository.devices.first().map { device ->
+            async {
+                val result = runCatching { repository.fetchStatus(device) }
+                    .fold({ Connection.Online(it) }, { Connection.Offline(it) })
+                connections.update { it + (device.id to result) }
+            }
+        }.awaitAll()
+    }
+
+    fun setRefreshSeconds(seconds: Int) {
+        viewModelScope.launch { repository.setRefreshSeconds(seconds) }
+    }
+}
