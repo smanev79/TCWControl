@@ -3,7 +3,6 @@ package com.tcwcontrol.app.ui.devices
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,10 +41,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -69,6 +64,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -258,8 +256,7 @@ fun DeviceListScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 12.dp),
             ) {
                 item {
                     OutlinedTextField(
@@ -275,7 +272,7 @@ fun DeviceListScreen(
                             }
                         },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp),
                     )
                 }
                 item { ConnectionSummary(rows) }
@@ -302,9 +299,10 @@ fun DeviceListScreen(
                     }
                     if (!isCollapsed) {
                         items(groupRows, key = { it.config.id }) { row ->
-                            ReorderableItem(reorderState, key = row.config.id, enabled = canReorder) {
+                            ReorderableItem(reorderState, key = row.config.id, enabled = canReorder) { dragging ->
                                 DeviceCard(
                                     row,
+                                    dragging = dragging,
                                     onClick = { onOpen(row.config.id) },
                                     onEdit = { onEdit(row.config.id) },
                                     dragHandle = if (canReorder && groupRows.size > 1) {
@@ -315,7 +313,7 @@ fun DeviceListScreen(
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier
                                                     .draggableHandle(onDragStopped = { localOrder?.let(vm::saveOrder) })
-                                                    .padding(end = 12.dp),
+                                                    .padding(end = 10.dp),
                                             )
                                         }
                                     } else {
@@ -409,63 +407,81 @@ private fun DeviceCard(
     row: DeviceRow,
     onClick: () -> Unit,
     onEdit: () -> Unit,
+    dragging: Boolean = false,
     dragHandle: (@Composable () -> Unit)? = null,
 ) {
     val config = row.config
-    val model = row.model
-    val title = when {
-        config.isDemo -> stringResource(R.string.demo_unit)
-        model.isNotEmpty() -> model
-        else -> stringResource(R.string.unknown_device)
-    }
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    val model = row.model.ifEmpty { if (config.isDemo) stringResource(R.string.demo_unit) else "" }
+    val title = config.description.ifEmpty { model.ifEmpty { stringResource(R.string.unknown_device) } }
+    val details = listOf(model.takeIf { config.description.isNotEmpty() }, "${config.host}:${config.port}")
+        .filterNot { it.isNullOrEmpty() }
+        .joinToString(" · ")
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .then(if (dragging) Modifier.shadow(6.dp) else Modifier)
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick),
     ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             dragHandle?.invoke()
+            Box(Modifier.size(8.dp).background(connectionColor(row.connection), CircleShape))
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                val subtitle = config.description.ifEmpty { "${config.host}:${config.port}" }
-                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    details,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             ConnectionBadge(row.connection)
-            Spacer(Modifier.width(12.dp))
-            Button(
-                onClick = onEdit,
-                shape = MaterialTheme.shapes.small,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-            ) { Text(stringResource(R.string.edit)) }
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, stringResource(R.string.edit), tint = MaterialTheme.colorScheme.primary)
+            }
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
-/** Dot plus a word, so online and offline read at a glance without relying on colour alone. */
+@Composable
+private fun connectionColor(connection: Connection) = when (connection) {
+    Connection.Unknown -> MaterialTheme.colorScheme.onSurfaceVariant
+    is Connection.Online -> if (connection.status.hasAlarm) AlarmRed else OnlineGreen
+    is Connection.Offline -> OfflineGrey
+}
+
+/** The state in words next to the dot, so it does not rely on colour alone. */
 @Composable
 private fun ConnectionBadge(connection: Connection) {
-    val (color, label) = when (connection) {
-        Connection.Unknown -> MaterialTheme.colorScheme.onSurfaceVariant to stringResource(R.string.connecting)
-        is Connection.Online -> if (connection.status.hasAlarm) {
-            AlarmRed to stringResource(R.string.alarm)
-        } else {
-            OnlineGreen to stringResource(R.string.online)
-        }
-        is Connection.Offline -> OfflineGrey to stringResource(R.string.offline)
+    val color = connectionColor(connection)
+    val label = when (connection) {
+        Connection.Unknown -> stringResource(R.string.connecting)
+        is Connection.Online -> stringResource(if (connection.status.hasAlarm) R.string.alarm else R.string.online)
+        is Connection.Offline -> stringResource(R.string.offline)
     }
     Row(
         Modifier
             .background(color.copy(alpha = 0.12f), RoundedCornerShape(50))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (connection == Connection.Unknown) {
-            CircularProgressIndicator(Modifier.size(10.dp), strokeWidth = 1.5.dp, color = color)
-        } else {
-            Box(Modifier.size(10.dp).background(color, CircleShape))
+            CircularProgressIndicator(Modifier.size(8.dp).padding(end = 0.dp), strokeWidth = 1.5.dp, color = color)
+            Spacer(Modifier.width(4.dp))
         }
-        Text(label, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(label, color = color, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -474,7 +490,10 @@ private fun ConnectionSummary(rows: List<DeviceRow>) {
     val online = rows.count { it.connection is Connection.Online }
     val offline = rows.count { it.connection is Connection.Offline }
     val alarm = rows.count { (it.connection as? Connection.Online)?.status?.hasAlarm == true }
-    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         Text(stringResource(R.string.summary_online, online), color = OnlineGreen, fontWeight = FontWeight.SemiBold)
         Text(stringResource(R.string.summary_offline, offline), color = OfflineGrey, fontWeight = FontWeight.SemiBold)
         if (alarm > 0) Text(stringResource(R.string.summary_alarm, alarm), color = AlarmRed, fontWeight = FontWeight.SemiBold)
@@ -489,7 +508,7 @@ private fun GroupHeader(name: String, rows: List<DeviceRow>, collapsed: Boolean,
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle)
-            .padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
+            .padding(start = 8.dp, end = 14.dp, top = 12.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
