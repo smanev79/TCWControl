@@ -65,6 +65,38 @@ class DeviceRepository(context: Context) {
         store.edit { it[CONFIRM_RELAYS] = enabled }
     }
 
+    /** Light, dark, or following the phone; light unless the user changed it. */
+    val themeMode: Flow<ThemeMode> = store.data.map { prefs ->
+        prefs[THEME]?.let { name -> ThemeMode.entries.firstOrNull { it.name == name } } ?: ThemeMode.LIGHT
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        store.edit { it[THEME] = mode.name }
+    }
+
+    /** Group names in the order the user arranged them; groups not listed come after, by name. */
+    val groupOrder: Flow<List<String>> = store.data.map { prefs ->
+        prefs[GROUP_ORDER]?.let { runCatching { json.decodeFromString<List<String>>(it) }.getOrNull() } ?: emptyList()
+    }
+
+    suspend fun setGroupOrder(groups: List<String>) {
+        store.edit { it[GROUP_ORDER] = json.encodeToString(groups) }
+    }
+
+    /** Moves every device of [from] to the group [to] (which may already exist) and keeps its place in the order. */
+    suspend fun renameGroup(from: String, to: String) {
+        val target = to.trim()
+        update { list -> list.map { if (it.group.trim() == from) it.copy(group = target) else it } }
+        val order = groupOrder.first()
+        setGroupOrder(order.map { if (it == from) target else it }.distinct())
+    }
+
+    /** Puts the devices in the order of [ids]; devices not in [ids] keep their place after them. */
+    suspend fun reorderDevices(ids: List<String>) {
+        val position = ids.withIndex().associate { (i, id) -> id to i }
+        update { list -> list.sortedBy { position[it.id] ?: Int.MAX_VALUE } }
+    }
+
     fun device(id: String): Flow<DeviceConfig?> = devices.map { list -> list.firstOrNull { it.id == id } }
 
     suspend fun setRefreshSeconds(seconds: Int) {
@@ -119,6 +151,8 @@ class DeviceRepository(context: Context) {
                     username = it.username,
                     password = if (includePasswords) password(it) else null,
                     isDemo = it.isDemo,
+                    useHttps = it.useHttps,
+                    allowSelfSigned = it.allowSelfSigned,
                 )
             },
         )
@@ -145,6 +179,8 @@ class DeviceRepository(context: Context) {
                     group = d.group,
                     username = d.username,
                     isDemo = d.isDemo,
+                    useHttps = d.useHttps,
+                    allowSelfSigned = d.allowSelfSigned,
                 ),
                 plainPassword = d.password.orEmpty(),
             )
@@ -157,7 +193,7 @@ class DeviceRepository(context: Context) {
     fun displayName(device: DeviceConfig, model: String = device.lastModel): String =
         device.description.ifEmpty { model.ifEmpty { device.host } }
 
-    private fun DeviceConfig.endpoint() = Endpoint(host, port, username, password(this))
+    private fun DeviceConfig.endpoint() = Endpoint(host, port, username, password(this), useHttps, allowSelfSigned)
 
     private suspend fun rememberModel(id: String, model: String) {
         if (devices.first().firstOrNull { it.id == id }?.lastModel == model) return
@@ -184,5 +220,7 @@ class DeviceRepository(context: Context) {
         private val ALARM_CHECK_SECONDS = intPreferencesKey("alarm_check_seconds")
         private val ALARM_LOG = booleanPreferencesKey("alarm_log_enabled")
         private val CONFIRM_RELAYS = booleanPreferencesKey("confirm_relays")
+        private val THEME = stringPreferencesKey("theme_mode")
+        private val GROUP_ORDER = stringPreferencesKey("group_order")
     }
 }

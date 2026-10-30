@@ -115,4 +115,25 @@
     <string name="reset_traffic">Reset statistics</string>
     <string name="reset_traffic_confirm">Reset the traffic statistics?</string>
     <string name="reset">Reset</string>
+    <string name="section_appearance">Appearance</string>
+    <string name="theme">Theme</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">Same as phone</string>
+    <string name="use_https">Use HTTPS</string>
+    <string name="use_https_hint">For devices with HTTPS turned on. The port changes to 443 unless you set another one.</string>
+    <string name="allow_self_signed">Allow self-signed certificate</string>
+    <string name="allow_self_signed_hint">Most devices use their own certificate. The connection is still encrypted, but the device\'s identity is not checked.</string>
+    <string name="drag_to_reorder">Drag to reorder</string>
+    <string name="arrange_groups">Arrange groups</string>
+    <string name="arrange_groups_hint">Drag the ≡ handle on a device to change its place inside a group. To move a device to another group, use Edit.</string>
+    <string name="rename_group">Rename group</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+    <string name="expand">Expand</string>
+    <string name="collapse">Collapse</string>
+    <plurals name="device_count">
+        <item quantity="one">%1$d device</item>
+        <item quantity="other">%1$d devices</item>
+    </plurals>
 </resources>

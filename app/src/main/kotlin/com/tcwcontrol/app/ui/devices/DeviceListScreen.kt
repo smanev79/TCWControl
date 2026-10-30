@@ -20,6 +20,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.pluralStringResource
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -144,6 +157,26 @@ fun DeviceListScreen(
 
     WhileVisible { vm.pollForever() }
 
+    val groupOrder by vm.groupOrder.collectAsStateWithLifecycle()
+    var collapsed by rememberSaveable { mutableStateOf(listOf<String>()) }
+    var arrangeGroups by remember { mutableStateOf(false) }
+    // Order shown while dragging, before it is saved; dropped once the saved list matches it.
+    var localOrder by remember { mutableStateOf<List<String>?>(null) }
+    LaunchedEffect(rows) {
+        if (localOrder == rows.map { it.config.id }) localOrder = null
+    }
+    val listState = rememberLazyListState()
+    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
+        val byId = rows.associateBy { it.config.id }
+        val moving = byId[from.key as? String] ?: return@rememberReorderableLazyListState
+        val target = byId[to.key as? String] ?: return@rememberReorderableLazyListState
+        // Devices move within their group; the group is changed in Edit.
+        if (moving.config.group.trim() != target.config.group.trim()) return@rememberReorderableLazyListState
+        val order = (localOrder ?: rows.map { it.config.id }).toMutableList()
+        order.add(order.indexOf(target.config.id), order.removeAt(order.indexOf(moving.config.id)))
+        localOrder = order
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -163,6 +196,14 @@ fun DeviceListScreen(
                                 onClick = {
                                     menuOpen = false
                                     onAlarmLog()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.arrange_groups)) },
+                                enabled = rows.any { it.config.group.isNotBlank() },
+                                onClick = {
+                                    menuOpen = false
+                                    arrangeGroups = true
                                 },
                             )
                             DropdownMenuItem(
@@ -205,12 +246,17 @@ fun DeviceListScreen(
                 Text(stringResource(R.string.no_devices), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            val filtered = rows.filter { it.matches(query) }
-            val groups = filtered.groupBy { it.config.group.trim() }.entries
-                .sortedWith(compareBy({ it.key.isEmpty() }, { it.key.lowercase() }))
-            val showHeaders = groups.any { it.key.isNotEmpty() }
-            val otherLabel = stringResource(R.string.ungrouped)
+            val ordered = localOrder?.let { order ->
+                rows.sortedBy { row -> order.indexOf(row.config.id).let { if (it < 0) Int.MAX_VALUE else it } }
+            } ?: rows
+            val filtered = ordered.filter { it.matches(query) }
+            val byGroup = filtered.groupBy { it.config.group.trim() }
+            val groups = sortGroups(byGroup.keys, groupOrder).map { it to byGroup.getValue(it) }
+            val showHeaders = groups.any { it.first.isNotEmpty() }
+            // Dragging works on the full list only; with a search active the order would be ambiguous.
+            val canReorder = query.isBlank()
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -243,18 +289,41 @@ fun DeviceListScreen(
                     }
                 }
                 groups.forEach { (group, groupRows) ->
+                    val isCollapsed = showHeaders && group in collapsed
                     if (showHeaders) {
                         item(key = "group:$group") {
-                            Text(
-                                group.ifEmpty { otherLabel }.uppercase(),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                            GroupHeader(
+                                name = group,
+                                rows = groupRows,
+                                collapsed = isCollapsed,
+                                onToggle = { collapsed = if (isCollapsed) collapsed - group else collapsed + group },
                             )
                         }
                     }
-                    items(groupRows, key = { it.config.id }) { row ->
-                        DeviceCard(row, onClick = { onOpen(row.config.id) }, onEdit = { onEdit(row.config.id) })
+                    if (!isCollapsed) {
+                        items(groupRows, key = { it.config.id }) { row ->
+                            ReorderableItem(reorderState, key = row.config.id, enabled = canReorder) {
+                                DeviceCard(
+                                    row,
+                                    onClick = { onOpen(row.config.id) },
+                                    onEdit = { onEdit(row.config.id) },
+                                    dragHandle = if (canReorder && groupRows.size > 1) {
+                                        {
+                                            Icon(
+                                                Icons.Default.Menu,
+                                                contentDescription = stringResource(R.string.drag_to_reorder),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier
+                                                    .draggableHandle(onDragStopped = { localOrder?.let(vm::saveOrder) })
+                                                    .padding(end = 12.dp),
+                                            )
+                                        }
+                                    } else {
+                                        null
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -301,6 +370,16 @@ fun DeviceListScreen(
         )
     }
 
+    if (arrangeGroups) {
+        val names = sortGroups(rows.map { it.config.group.trim() }.filter { it.isNotEmpty() }, groupOrder)
+        GroupsDialog(
+            groups = names,
+            onReorder = vm::setGroupOrder,
+            onRename = vm::renameGroup,
+            onDismiss = { arrangeGroups = false },
+        )
+    }
+
     qrCode?.let { (bitmap, count) ->
         AlertDialog(
             onDismissRequest = { qrCode = null },
@@ -326,7 +405,12 @@ fun DeviceListScreen(
 }
 
 @Composable
-private fun DeviceCard(row: DeviceRow, onClick: () -> Unit, onEdit: () -> Unit) {
+private fun DeviceCard(
+    row: DeviceRow,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    dragHandle: (@Composable () -> Unit)? = null,
+) {
     val config = row.config
     val model = row.model
     val title = when {
@@ -340,6 +424,7 @@ private fun DeviceCard(row: DeviceRow, onClick: () -> Unit, onEdit: () -> Unit) 
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            dragHandle?.invoke()
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 val subtitle = config.description.ifEmpty { "${config.host}:${config.port}" }
@@ -393,5 +478,108 @@ private fun ConnectionSummary(rows: List<DeviceRow>) {
         Text(stringResource(R.string.summary_online, online), color = OnlineGreen, fontWeight = FontWeight.SemiBold)
         Text(stringResource(R.string.summary_offline, offline), color = OfflineGrey, fontWeight = FontWeight.SemiBold)
         if (alarm > 0) Text(stringResource(R.string.summary_alarm, alarm), color = AlarmRed, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun GroupHeader(name: String, rows: List<DeviceRow>, collapsed: Boolean, onToggle: () -> Unit) {
+    val alarms = rows.count { (it.connection as? Connection.Online)?.status?.hasAlarm == true }
+    val offline = rows.count { it.connection is Connection.Offline }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            if (collapsed) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.Default.KeyboardArrowDown,
+            contentDescription = stringResource(if (collapsed) R.string.expand else R.string.collapse),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            name.ifEmpty { stringResource(R.string.ungrouped) }.uppercase(),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        if (alarms > 0) {
+            Text(stringResource(R.string.summary_alarm, alarms), color = AlarmRed, style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.width(8.dp))
+        }
+        if (offline > 0) {
+            Text(stringResource(R.string.summary_offline, offline), color = OfflineGrey, style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(
+            pluralStringResource(R.plurals.device_count, rows.size, rows.size),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Moves groups up and down and renames them. */
+@Composable
+private fun GroupsDialog(
+    groups: List<String>,
+    onReorder: (List<String>) -> Unit,
+    onRename: (String, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var renaming by remember { mutableStateOf<String?>(null) }
+    fun move(index: Int, by: Int) {
+        onReorder(groups.toMutableList().apply { add(index + by, removeAt(index)) })
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.arrange_groups)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                groups.forEachIndexed { index, group ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(group, Modifier.weight(1f))
+                        IconButton(onClick = { renaming = group }) {
+                            Icon(Icons.Default.Edit, stringResource(R.string.rename_group))
+                        }
+                        IconButton(onClick = { move(index, -1) }, enabled = index > 0) {
+                            Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.move_up))
+                        }
+                        IconButton(onClick = { move(index, 1) }, enabled = index < groups.lastIndex) {
+                            Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.move_down))
+                        }
+                    }
+                }
+                Text(
+                    stringResource(R.string.arrange_groups_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.done)) } },
+    )
+
+    renaming?.let { old ->
+        var name by remember(old) { mutableStateOf(old) }
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text(stringResource(R.string.rename_group)) },
+            text = {
+                OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true)
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = name.isNotBlank(),
+                    onClick = {
+                        if (name.trim() != old) onRename(old, name.trim())
+                        renaming = null
+                    },
+                ) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = { TextButton(onClick = { renaming = null }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 }

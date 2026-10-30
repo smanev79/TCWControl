@@ -14,6 +14,9 @@ data class DeviceConfig(
     val username: String = "",
     val encryptedPassword: String = "",
     val isDemo: Boolean = false,
+    val useHttps: Boolean = false,
+    /** Accept the device's certificate even if it is self-signed. */
+    val allowSelfSigned: Boolean = false,
     /** Model name from the last successful status.xml, shown before the next refresh. */
     val lastModel: String = "",
 )
