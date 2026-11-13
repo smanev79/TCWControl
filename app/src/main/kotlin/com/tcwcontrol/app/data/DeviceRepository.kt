@@ -197,6 +197,11 @@ class DeviceRepository(context: Context) {
      * this app already has devices.
      */
     suspend fun importLegacyOnce() {
+        importLegacyDevices()
+        importLegacyPasswords()
+    }
+
+    private suspend fun importLegacyDevices() {
         if (store.data.first()[LEGACY_IMPORTED] == true) return
         withContext(Dispatchers.IO) {
             if (devices.first().isEmpty()) {
@@ -219,6 +224,31 @@ class DeviceRepository(context: Context) {
                     ?.let { setRefreshSeconds(it) }
             }
             store.edit { it[LEGACY_IMPORTED] = true }
+        }
+    }
+
+    /**
+     * Fills in passwords that 4.0.0 could not read from the old app (it opened the old secure
+     * storage with the wrong key), for imported devices that still have none. Runs once.
+     */
+    private suspend fun importLegacyPasswords() {
+        if (store.data.first()[LEGACY_PASSWORDS_IMPORTED] == true) return
+        withContext(Dispatchers.IO) {
+            val legacy = LegacyImport(appContext).read()?.devices.orEmpty().filter { it.password.isNotEmpty() }
+            if (legacy.isNotEmpty()) {
+                val found = devices.first().mapNotNull { device ->
+                    if (device.encryptedPassword.isNotEmpty()) return@mapNotNull null
+                    val match = legacy.firstOrNull {
+                        it.address.trim().equals(device.host.trim(), ignoreCase = true) &&
+                            it.port == device.port && it.username == device.username
+                    } ?: return@mapNotNull null
+                    device.id to SecretBox.encrypt(match.password)
+                }.toMap()
+                if (found.isNotEmpty()) {
+                    update { list -> list.map { d -> found[d.id]?.let { d.copy(encryptedPassword = it) } ?: d } }
+                }
+            }
+            store.edit { it[LEGACY_PASSWORDS_IMPORTED] = true }
         }
     }
 
@@ -256,5 +286,6 @@ class DeviceRepository(context: Context) {
         private val THEME = stringPreferencesKey("theme_mode")
         private val GROUP_ORDER = stringPreferencesKey("group_order")
         private val LEGACY_IMPORTED = booleanPreferencesKey("legacy_imported")
+        private val LEGACY_PASSWORDS_IMPORTED = booleanPreferencesKey("legacy_passwords_imported")
     }
 }
