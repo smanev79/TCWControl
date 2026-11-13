@@ -59,20 +59,21 @@ class LegacyImport(private val context: Context) {
         val candidates = names.filter {
             context.getSharedPreferences(it, Context.MODE_PRIVATE).contains(KEYSET_KEY)
         }.sortedByDescending { it == expected }
-        if (candidates.isEmpty()) return emptyList()
-        val masterKey = runCatching {
-            MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
-        }.getOrNull() ?: return emptyList()
         return candidates.mapNotNull { name ->
-            runCatching {
-                EncryptedSharedPreferences.create(
-                    context,
-                    name,
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-                )
-            }.getOrNull()
+            // MAUI builds its master key with the file name as the key alias; plain androidx uses a default alias.
+            sequenceOf<MasterKey.Builder>(MasterKey.Builder(context, name), MasterKey.Builder(context))
+                .firstNotNullOfOrNull { builder ->
+                    runCatching {
+                        val masterKey = builder.setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+                        EncryptedSharedPreferences.create(
+                            context,
+                            name,
+                            masterKey,
+                            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+                        ) // throws when the master key cannot open the keyset
+                    }.getOrNull()
+                }
         }
     }
 

@@ -15,8 +15,8 @@ android {
         applicationId = "cc.teracom.app.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 400
-        versionName = "4.0.0"
+        versionCode = 401
+        versionName = "4.0.1"
     }
 
     // The upload key of the Play app. CI writes it from GitHub secrets; without them the release
