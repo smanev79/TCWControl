@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.tcwcontrol.app.monitor.AlarmNotifier
+import com.tcwcontrol.core.legacy.LegacyDevices
 import com.tcwcontrol.core.model.DeviceStatus
 import com.tcwcontrol.core.net.Endpoint
 import com.tcwcontrol.core.net.RelayAction
@@ -24,7 +25,8 @@ import java.util.UUID
 private val Context.dataStore by preferencesDataStore(name = "tcw_control")
 
 class DeviceRepository(context: Context) {
-    private val store = context.applicationContext.dataStore
+    private val appContext = context.applicationContext
+    private val store = appContext.dataStore
     val traffic = TrafficCounter(context.applicationContext)
     private val client = TeracomClient(onTraffic = traffic::record)
     val alarmLog = AlarmLog(context.applicationContext)
@@ -189,6 +191,37 @@ class DeviceRepository(context: Context) {
         return ImportResult(added = added, skipped = file.devices.size - added)
     }
 
+    /**
+     * On the first start after updating from the previous TCW Control app, takes over the devices
+     * (with their passwords) and the refresh interval it had saved. Runs once; does nothing when
+     * this app already has devices.
+     */
+    suspend fun importLegacyOnce() {
+        if (store.data.first()[LEGACY_IMPORTED] == true) return
+        withContext(Dispatchers.IO) {
+            if (devices.first().isEmpty()) {
+                val legacy = LegacyImport(appContext).read()
+                legacy?.devices?.forEach { d ->
+                    save(
+                        DeviceConfig(
+                            id = "",
+                            host = d.address,
+                            port = d.port,
+                            description = d.description,
+                            username = d.username,
+                            isDemo = d.isDemo,
+                        ),
+                        plainPassword = d.password.ifEmpty { if (d.isDemo) DemoUnit.PASSWORD else "" },
+                    )
+                }
+                legacy?.refreshIndex
+                    ?.let { LegacyDevices.refreshSeconds(it, REFRESH_OPTIONS) }
+                    ?.let { setRefreshSeconds(it) }
+            }
+            store.edit { it[LEGACY_IMPORTED] = true }
+        }
+    }
+
     /** The name shown for a device in notifications and the alarm log. */
     fun displayName(device: DeviceConfig, model: String = device.lastModel): String =
         device.description.ifEmpty { model.ifEmpty { device.host } }
@@ -222,5 +255,6 @@ class DeviceRepository(context: Context) {
         private val CONFIRM_RELAYS = booleanPreferencesKey("confirm_relays")
         private val THEME = stringPreferencesKey("theme_mode")
         private val GROUP_ORDER = stringPreferencesKey("group_order")
+        private val LEGACY_IMPORTED = booleanPreferencesKey("legacy_imported")
     }
 }

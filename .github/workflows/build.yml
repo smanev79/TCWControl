@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      HAS_KEY: ${{ secrets.TCW_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -24,6 +26,24 @@ jobs:
         with:
           name: tcw-control-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+      # The store build, signed with the Play upload key. Runs only once the repository has the
+      # secrets TCW_KEYSTORE_BASE64, TCW_KEYSTORE_PASSWORD, TCW_KEY_ALIAS and TCW_KEY_PASSWORD.
+      - name: Signed release APK and bundle
+        id: release
+        if: env.HAS_KEY == 'true'
+        env:
+          TCW_KEYSTORE_BASE64: ${{ secrets.TCW_KEYSTORE_BASE64 }}
+          TCW_KEYSTORE_PASSWORD: ${{ secrets.TCW_KEYSTORE_PASSWORD }}
+          TCW_KEY_ALIAS: ${{ secrets.TCW_KEY_ALIAS }}
+          TCW_KEY_PASSWORD: ${{ secrets.TCW_KEY_PASSWORD }}
+        run: |
+          export TCW_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks"
+          echo "$TCW_KEYSTORE_BASE64" | base64 -d > "$TCW_KEYSTORE_FILE"
+          ./gradlew --no-daemon :app:assembleRelease :app:bundleRelease
+          rm -f "$TCW_KEYSTORE_FILE"
+          cp app/build/outputs/apk/release/app-release.apk TCWControl-release.apk
+          cp app/build/outputs/bundle/release/app-release.aab TCWControl-release.aab
+          echo "files=TCWControl-release.apk TCWControl-release.aab" >> "$GITHUB_OUTPUT"
       - name: Publish APK as the "latest" pre-release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
@@ -31,5 +51,5 @@ jobs:
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk TCWControl-debug.apk
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest TCWControl-debug.apk --prerelease --target "$GITHUB_SHA" \
-            --title "Latest debug build" --notes "Built from $GITHUB_SHA"
+          gh release create latest TCWControl-debug.apk ${{ steps.release.outputs.files }} --prerelease --target "$GITHUB_SHA" \
+            --title "Latest build" --notes "Built from $GITHUB_SHA"
