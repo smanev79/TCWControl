@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Teracom mark from the previous TCW Control app (appicon_foreground.svg, scaled 0.75 like there). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group android:pivotX="512" android:pivotY="512" android:scaleX="0.75" android:scaleY="0.75">
+        <group android:translateX="-40.974359" android:translateY="110.273804" android:scaleX="0.223060596" android:scaleY="0.223060596">
+            <path android:strokeColor="#FF008DD2" android:strokeWidth="77.87" android:strokeMiterLimit="22.9256" android:pathData="M3985.49 2807.48c-534,790.32 -1639.25,976.68 -2468.65,416.17 -829.42,-560.44 -1068.89,-1655.55 -534.84,-2445.83 534.02,-790.21 1639.33,-976.47 2468.73,-416.05 829.4,560.42 1068.76,1655.48 534.76,2445.71" />
+            <path android:fillColor="#FF008DD2" android:pathData="M3904.08 2602.83l-2645.17 -1787.45c-25.82,31.87 -59.25,77.12 -82.55,111.65 -9.55,14.1 -18.26,28.5 -27.19,42.78l540.63 365.33 601.82 292 1564.54 1057.18 47.93 -81.49z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M4006.66 2361.66l-2561.12 -1730.69c-49.75,41.03 -96.86,85.72 -140.97,134.12l460.69 311.27 608.12 265.75 1609.54 1087.66 23.73 -68.11z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M4066.28 2073.15l-2375.56 -1605.35c-61.34,32.23 -120.45,68.96 -176.65,109.96l437.83 295.88 430.51 155.15 1672.7 1130.35 11.17 -85.99z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M4066.28 1774.9l-2099.17 -1418.46c-72.34,21.02 -142.92,47.41 -211.12,79.07l319.45 215.81 535.24 232.08 1462.57 988.37 -6.97 -96.87z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M3996.56 1444.74l-1697.45 -1147.04c-90.58,6.05 -180.02,19.95 -267.22,41.26l285.08 192.64 385.81 130.62 1326.05 896.1 -32.26 -113.59z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M3770.45 1001.43l-976.39 -659.81c-104.97,-25.69 -210.86,-40.87 -316.3,-45.55l311.19 210.29c25.42,13.41 353.22,139.28 353.22,139.28l708.71 478.95 -80.43 -123.15z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M2628.75 3353.86l-1590.86 -1075.06c63.68,166.07 155.88,324.03 274.8,466.25 70.73,72.1 155.76,145.82 260.62,216.75 0,0 389.45,244.13 586.36,235.6l439.4 156.56 29.69 -0.11z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M3024.78 3296.51l-2081.18 -1406.45c11.24,102.49 32.91,204.28 64.76,303.83l680.93 460.13 1180.46 677.25 155.03 -34.76z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M3330.29 3174.03l-2386.87 -1612.99c-9.13,81.02 -11.08,162.54 -6.73,244.04l724.22 489.42 726.38 356.8 845.26 571.09 97.74 -48.37z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M3580.78 3002.99l-2571.88 -1737.99c-22.01,65.17 -38.73,131.74 -51.01,198.74l726.31 490.85 744.79 408.6 1056.61 713.95 95.18 -74.15z" />
+            <path android:fillColor="#FF008DD2" android:pathData="M3757.1 2823.76l-2646.52 -1788.45c-29.32,52.99 -55.11,107.14 -76.94,162.36l666.53 450.37 511.84 232.59 1489.05 1006.26 56.04 -63.13z" />
+            <path android:fillColor="#FFFFFFFF" android:pathData="M2729.66,544.58 L3369.89,977.26 L2869.92,1717.17 L4035.12,2504.49 L3625.14,3106.53 L2457.99,2317.89 L1970.68,3038.91 L1335.83,2607.31z" />
+        </group>
+    </group>
+</vector>
