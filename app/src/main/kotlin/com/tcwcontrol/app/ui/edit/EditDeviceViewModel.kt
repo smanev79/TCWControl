@@ -16,16 +16,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * A new device starts on HTTPS with a self-signed certificate allowed, as current Teracom devices
+ * (TCW242, TCW260) ship that way. Devices taken over from the old app or a file keep plain HTTP.
+ */
 data class EditForm(
     val isDemo: Boolean = false,
     val host: String = "",
-    val port: String = "80",
+    val port: String = "443",
     val description: String = "",
     val group: String = "",
     val username: String = "",
     val password: String = "",
-    val useHttps: Boolean = false,
-    val allowSelfSigned: Boolean = false,
+    val useHttps: Boolean = true,
+    val allowSelfSigned: Boolean = true,
 ) {
     val hostError: Boolean get() = host.isBlank()
     val portError: Boolean get() = port.toIntOrNull()?.let { it !in 1..65535 } ?: true
@@ -95,6 +99,8 @@ class EditDeviceViewModel(
                 description = DemoUnit.DESCRIPTION,
                 username = DemoUnit.USERNAME,
                 password = DemoUnit.PASSWORD,
+                useHttps = false,
+                allowSelfSigned = false,
             )
         } else {
             EditForm()
